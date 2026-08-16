@@ -112,11 +112,11 @@
         </div>
       <% } %>
 
-      <!-- ================= 2. OUTSTANDING RUNNING BETS ================= -->
+      <!-- ================= 2. OUTSTANDING RUNNING BETS (BY MEMBER) ================= -->
       <% if (subTab === 'outstanding') { %>
         <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
           <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Outstanding Running Bets</span>
+            <span>Outstanding Running Bets by Member</span>
             <span class="text-xs font-normal text-slate-200">Pending Slips: <%= outstandingBets.length %></span>
           </div>
 
@@ -126,29 +126,31 @@
                 <tr>
                   <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
                   <th class="p-3 border-r border-slate-300">Member</th>
-                  <th class="p-3 border-r border-slate-300">Match Teams</th>
-                  <th class="p-3 border-r border-slate-300 text-center">Selection</th>
-                  <th class="p-3 border-r border-slate-300 text-center">Odd</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Stake Amount</th>
-                  <th class="p-3 text-center w-28">Status</th>
+                  <th class="p-3 border-r border-slate-300 text-center w-32">Pending Slips</th>
+                  <th class="p-3 border-r border-slate-300 text-right">Total Stake</th>
+                  <th class="p-3 text-center w-24">Action</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
-                <% if (outstandingBets.length === 0) { %>
+                <% if (outstandingByMember.length === 0) { %>
                   <tr>
-                    <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No outstanding running bets found.</td>
+                    <td colspan="5" class="p-6 text-center text-slate-500 font-medium">No outstanding running bets found.</td>
                   </tr>
                 <% } else { %>
-                  <% outstandingBets.forEach((b, idx) => { %>
+                  <% outstandingByMember.forEach((m, idx) => { %>
                     <tr class="hover:bg-amber-50/60 transition">
                       <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
-                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800"><%= b.username %></td>
-                      <td class="p-3 border-r border-slate-200 font-bold text-blue-950"><%= b.home_team %> vs <%= b.away_team %></td>
-                      <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900"><%= b.choice %></td>
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-emerald-700 text-base"><%= b.odd %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800 text-base"><%= Number(b.amount).toLocaleString() %> MMK</td>
+                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
+                        <button type="button" onclick="showOutstandingBets(<%= m.user_id %>, '<%= m.username %>')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
+                          <%= m.username %>
+                        </button>
+                      </td>
+                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600"><%= m.total_bets %></td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800 text-base"><%= Number(m.total_stake).toLocaleString() %> MMK</td>
                       <td class="p-3 text-center">
-                        <span class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded text-xs font-bold animate-pulse">RUNNING</span>
+                        <button type="button" onclick="showOutstandingBets(<%= m.user_id %>, '<%= m.username %>')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
+                          Details
+                        </button>
                       </td>
                     </tr>
                   <% }) %>
@@ -202,7 +204,7 @@
                   <th class="p-3 border-r border-slate-300 text-center w-16">Bets</th>
                   <th class="p-3 border-r border-slate-300 text-right">Stake (Turnover)</th>
                   <th class="p-3 border-r border-slate-300 text-right bg-amber-50 text-amber-950">Valid Amount</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Payout</th>
+                  <th class="p-3 border-r border-slate-300 text-right">Win / Lose (Net)</th>
                   <th class="p-3 border-r border-slate-300 text-right">Comm (%)</th>
                   <th class="p-3 border-r border-slate-300 text-right">Comm Amount</th>
                   <th class="p-3 text-right">Member Win / Lose</th>
@@ -223,10 +225,11 @@
                     let grandMemberNet = 0;
                   %>
                   <% winLoseList.forEach((r, idx) => { %>
-                    <% 
+                    <%
+                      const netWinLose = Number(r.payout || 0) - Number(r.turnover || 0);
                       grandTurnover += Number(r.turnover || 0);
                       grandValid += Number(r.valid_amount || 0);
-                      grandPayout += Number(r.payout || 0);
+                      grandPayout += netWinLose;
                       grandComm += Number(r.comm_amount || 0);
                       grandMemberNet += Number(r.member_net || 0);
                     %>
@@ -240,7 +243,9 @@
                       <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-600"><%= r.total_bets %></td>
                       <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-800"><%= Number(r.turnover).toLocaleString() %></td>
                       <td class="p-3 border-r border-slate-200 text-right font-black text-amber-900 bg-amber-50/50"><%= Number(r.valid_amount).toLocaleString() %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-blue-900"><%= Number(r.payout).toLocaleString() %></td>
+                      <td class="p-3 border-r border-slate-200 text-right font-bold <%= netWinLose >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
+                        <%= netWinLose >= 0 ? '+' : '' %><%= Number(netWinLose).toLocaleString() %>
+                      </td>
                       <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-600"><%= Number(r.comm_rate) %>%</td>
                       <td class="p-3 border-r border-slate-200 text-right font-bold text-purple-800"><%= Number(r.comm_amount).toLocaleString() %></td>
                       <td class="p-3 border-r border-slate-200 text-right font-black text-base <%= r.member_net >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
@@ -259,7 +264,9 @@
                     <td colspan="3" class="p-3 text-center font-sans uppercase text-slate-800 border-r border-slate-300">Total</td>
                     <td class="p-3 text-right border-r border-slate-300 text-slate-900"><%= Number(grandTurnover).toLocaleString() %></td>
                     <td class="p-3 text-right border-r border-slate-300 text-amber-950 bg-amber-100"><%= Number(grandValid).toLocaleString() %></td>
-                    <td class="p-3 text-right border-r border-slate-300 text-blue-950"><%= Number(grandPayout).toLocaleString() %></td>
+                    <td class="p-3 text-right border-r border-slate-300 <%= grandPayout >= 0 ? 'text-emerald-800' : 'text-rose-700' %>">
+                      <%= grandPayout >= 0 ? '+' : '' %><%= Number(grandPayout).toLocaleString() %>
+                    </td>
                     <td class="p-3 text-right border-r border-slate-300 text-slate-600">-</td>
                     <td class="p-3 text-right border-r border-slate-300 text-purple-950"><%= Number(grandComm).toLocaleString() %></td>
                     <td class="p-3 text-right border-r border-slate-300 text-base <%= grandMemberNet >= 0 ? 'text-emerald-800' : 'text-rose-700' %>">
@@ -324,11 +331,94 @@
     </div>
   </div>
 
+  <!-- ================= OUTSTANDING BET DETAILS MODAL ================= -->
+  <div id="outstandingBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
+
+      <!-- Modal Header -->
+      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
+        <span class="flex items-center space-x-2">
+          <i data-lucide="list-ordered" class="w-4 h-4 text-amber-400"></i>
+          <span>Outstanding Bets: <span id="outstandingModalMemberName" class="text-amber-300"></span></span>
+        </span>
+        <button onclick="closeOutstandingBetsModal()" class="text-slate-300 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Content (Table of Slips) -->
+      <div class="p-4 overflow-y-auto flex-1">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
+            <tr>
+              <th class="p-2.5 border-r border-slate-300 text-center w-12">No.</th>
+              <th class="p-2.5 border-r border-slate-300">Match Teams</th>
+              <th class="p-2.5 border-r border-slate-300 text-center">Selection</th>
+              <th class="p-2.5 border-r border-slate-300 text-center">Odd</th>
+              <th class="p-2.5 border-r border-slate-300 text-right">Stake</th>
+              <th class="p-2.5 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="outstandingBetsListBody" class="divide-y divide-slate-200 font-mono">
+            <!-- Dynamically Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 px-5 py-3 border-t border-slate-300 flex justify-between items-center text-xs">
+        <span id="outstandingModalBetsCount" class="font-bold text-slate-600"></span>
+        <button type="button" onclick="closeOutstandingBetsModal()" class="px-4 py-1.5 bg-[#0f3460] text-amber-300 font-bold rounded transition">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
     // Store All Settled Bets passed from Backend
     const allSettledBets = <%- JSON.stringify(typeof allSettledBets !== 'undefined' ? allSettledBets : []) %>;
+
+    // Store All Outstanding (PENDING) Bets passed from Backend
+    const allOutstandingBets = <%- JSON.stringify(typeof outstandingBets !== 'undefined' ? outstandingBets : []) %>;
+
+    function showOutstandingBets(userId, username) {
+      document.getElementById('outstandingModalMemberName').textContent = username;
+      const tbody = document.getElementById('outstandingBetsListBody');
+      tbody.innerHTML = '';
+
+      const userBets = allOutstandingBets.filter(b => b.user_id === userId);
+      document.getElementById('outstandingModalBetsCount').textContent = `Total Slips: ${userBets.length}`;
+
+      if (userBets.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-sans font-medium">No outstanding bets found for this member.</td></tr>`;
+      } else {
+        userBets.forEach((b, index) => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-amber-50/60 transition';
+          row.innerHTML = `
+            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">${index + 1}</td>
+            <td class="p-2.5 border-r border-slate-200 font-sans font-bold text-blue-950">${b.home_team} vs ${b.away_team}</td>
+            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-purple-900">${b.choice}</td>
+            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-emerald-700">${b.odd}</td>
+            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
+            <td class="p-2.5 text-center">
+              <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[11px] font-bold animate-pulse">RUNNING</span>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      document.getElementById('outstandingBetsModal').classList.remove('hidden');
+    }
+
+    function closeOutstandingBetsModal() {
+      document.getElementById('outstandingBetsModal').classList.add('hidden');
+    }
 
     function showMemberBets(userId, username) {
       document.getElementById('modalMemberName').textContent = username;

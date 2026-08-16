@@ -22,24 +22,97 @@
     </div>
 
     <div class="p-4 sm:p-5 space-y-4">
+      <% if (bettingLocked) { %>
+        <div class="bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2.5 rounded-lg text-xs font-bold flex items-center space-x-2 max-w-3xl">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <span>Betting is currently LOCKED site-wide. Members can log in and browse, but cannot place any new bets.</span>
+        </div>
+      <% } %>
+
       <div class="bg-white p-4 rounded-lg border border-slate-300 shadow-sm space-y-4 max-w-3xl">
         <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
           <div>
             <div class="font-bold text-slate-800 text-sm">Global Bet Lock</div>
-            <div class="text-slate-500 text-xs mt-0.5">Temporarily suspend all betting activity system-wide</div>
+            <div class="text-slate-500 text-xs mt-0.5">
+              <% if (bettingLocked) { %>
+                Betting is locked. Members cannot place new bets until you resume.
+              <% } else { %>
+                Temporarily suspend all betting activity system-wide
+              <% } %>
+            </div>
           </div>
-          <button class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs">Emergency Stop</button>
+          <form action="/admin/toggle-bet-lock" method="POST" onsubmit="return confirm('<%= bettingLocked ? 'Resume betting site-wide? Members will be able to place bets again.' : 'Stop ALL betting site-wide? Members will not be able to place any new bets until you resume.' %>');">
+            <% if (bettingLocked) { %>
+              <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs">Resume Betting</button>
+            <% } else { %>
+              <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs">Emergency Stop</button>
+            <% } %>
+          </form>
         </div>
 
-        <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
+        <form action="/admin/break" method="GET" class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
           <div>
-            <div class="font-bold text-slate-800 text-sm">Max Bet Limit Per Match</div>
-            <div class="text-slate-500 text-xs mt-0.5">Maximum amount a user can place on a single bet</div>
+            <div class="font-bold text-slate-800 text-sm">Break Limit (per Match + Selection)</div>
+            <div class="text-slate-500 text-xs mt-0.5">Combined member stakes on the same match &amp; selection over this amount are flagged below</div>
           </div>
           <div class="flex items-center space-x-2">
-            <input type="number" value="100000" class="w-28 px-3 py-1.5 border border-slate-300 rounded text-sm bg-white">
-            <button class="px-3 py-1.5 bg-[#0f3460] text-amber-300 text-xs rounded font-bold">Save</button>
+            <input type="number" name="break_limit" value="<%= breakLimit %>" min="0" step="1000" class="w-28 px-3 py-1.5 border border-slate-300 rounded text-sm bg-white">
+            <button type="submit" class="px-3 py-1.5 bg-[#0f3460] text-amber-300 text-xs rounded font-bold">Apply</button>
           </div>
+        </form>
+      </div>
+
+      <!-- ================= BREAK EXPOSURE MONITOR ================= -->
+      <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden max-w-5xl">
+        <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
+          <span>Combined Exposure by Match &amp; Selection</span>
+          <span class="text-xs font-normal text-slate-200">
+            Break Limit: <%= Number(breakLimit).toLocaleString() %> MMK &middot;
+            Over Limit: <%= exposureList.filter(e => e.isOverLimit).length %>
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm border-collapse">
+            <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
+              <tr>
+                <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
+                <th class="p-3 border-r border-slate-300">Match</th>
+                <th class="p-3 border-r border-slate-300 text-center">Selection</th>
+                <th class="p-3 border-r border-slate-300 text-center w-20">Bets</th>
+                <th class="p-3 border-r border-slate-300 text-right">Total Staked</th>
+                <th class="p-3 border-r border-slate-300 text-right">Break Limit</th>
+                <th class="p-3 text-right">Excess</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <% if (exposureList.length === 0) { %>
+                <tr>
+                  <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No running bets on open/live matches right now.</td>
+                </tr>
+              <% } else { %>
+                <% exposureList.forEach((e, idx) => { %>
+                  <tr class="<%= e.isOverLimit ? 'bg-rose-50/70 hover:bg-rose-100/70' : 'hover:bg-amber-50/60' %> transition">
+                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
+                    <td class="p-3 border-r border-slate-200 font-bold text-blue-950"><%= e.home_team %> vs <%= e.away_team %></td>
+                    <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900"><%= e.choice %></td>
+                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600"><%= e.bet_count %></td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black <%= e.isOverLimit ? 'text-rose-700' : 'text-slate-800' %> text-base">
+                      <%= Number(e.total_staked).toLocaleString() %>
+                    </td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-500"><%= Number(breakLimit).toLocaleString() %></td>
+                    <td class="p-3 text-right font-mono font-black text-base">
+                      <% if (e.isOverLimit) { %>
+                        <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+<%= Number(e.excess).toLocaleString() %></span>
+                      <% } else { %>
+                        <span class="text-slate-300">-</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

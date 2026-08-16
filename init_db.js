@@ -1,4 +1,5 @@
 const { pool, query } = require('./db');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 async function resetDatabase() {
@@ -62,20 +63,34 @@ async function resetDatabase() {
       );
     `);
 
+    // ၅။ App Settings Table (Global Bet Lock) - kept across resets, not dropped above
+    await query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        id SERIAL PRIMARY KEY,
+        betting_locked BOOLEAN NOT NULL DEFAULT FALSE
+      );
+    `);
+    const existingSettings = await query('SELECT id FROM app_settings LIMIT 1');
+    if (existingSettings.rows.length === 0) {
+      await query('INSERT INTO app_settings (betting_locked) VALUES (FALSE)');
+    }
+
     console.log('✅ Table အသစ်များ အောင်မြင်စွာ တည်ဆောက်ပြီးပါပြီ။');
     console.log('👤 Default Admin နှင့် Member စာရင်း သွင်းနေပါသည်...');
 
-    // ၅။ မူလ Admin Account (admin / admin123)
+        // ၆။ မူလ Admin Account (admin / admin123) - password hashed with bcrypt
+    const adminHash = await bcrypt.hash('admin123', 10);
     await query(`
       INSERT INTO users (username, password, role, balance, commission, bet_limit, status)
-      VALUES ('admin', 'admin123', 'ADMIN', 0.00, 0.00, 0.00, 'ACTIVE');
-    `);
+      VALUES ('admin', $1, 'ADMIN', 0.00, 0.00, 0.00, 'ACTIVE');
+    `, [adminHash]);
 
-    // ၆။ Demo Member Account (win / 123456)
+    // ၇။ Demo Member Account (win / 123456) - password hashed with bcrypt
+    const winHash = await bcrypt.hash('123456', 10);
     await query(`
       INSERT INTO users (username, password, role, balance, commission, bet_limit, status)
-      VALUES ('win', '123456', 'MEMBER', 100000.00, 5.00, 50000.00, 'ACTIVE');
-    `);
+      VALUES ('win', $1, 'MEMBER', 100000.00, 5.00, 50000.00, 'ACTIVE');
+    `, [winHash]);
 
     console.log('🎉 Database Clean Reset အောင်မြင်စွာ ပြီးဆုံးပါပြီ!');
     console.log('------------------------------------------------------------');

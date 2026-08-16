@@ -51,6 +51,10 @@
           </button>
         </div>
 
+        <button type="button" onclick="openChangePasswordModal()" class="bg-[#133b5c] active:bg-[#1b4a73] text-slate-200 font-bold p-1.5 rounded border border-blue-800/80" title="Change Password">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+        </button>
+
         <a href="/logout" class="bg-rose-700 active:bg-rose-800 text-white font-bold p-1.5 rounded" title="Logout">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
         </a>
@@ -81,6 +85,12 @@
 
     <!-- 1. SPORT MATCHES -->
     <% if (currentTab === 'sports') { %>
+      <% if (bettingLocked) { %>
+        <div class="bg-rose-50 border border-rose-300 text-rose-800 px-3 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 shadow-sm">
+          <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+          <span>လောင်းကြေး တင်ခြင်းကို ယာယီ ပိတ်ထားပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။</span>
+        </div>
+      <% } %>
       <% if (matches.length === 0) { %>
         <div class="bg-white p-8 rounded-xl border border-slate-300 text-center text-slate-500 font-semibold shadow-sm">
           No active matches available right now.
@@ -120,9 +130,6 @@
                 <div>
                   <div class="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase mb-1">
                     <span>Body Selection</span>
-                    <span class="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">
-                      <%= isUpperHome ? m.home_team : m.away_team %> ပေး (<%= m.body_odd %>)
-                    </span>
                   </div>
                   <div class="grid grid-cols-2 gap-1.5">
                     <button 
@@ -250,57 +257,66 @@
           <% } %>
         </form>
 
-        <div class="bg-white p-3 rounded-xl border border-slate-300 shadow-sm grid grid-cols-3 gap-1 text-center font-mono">
-          <div class="border-r border-slate-200">
-            <div class="text-[10px] text-slate-400 font-semibold uppercase">Stake</div>
-            <div class="font-bold text-slate-800 text-xs mt-0.5"><%= Number(totalStake).toLocaleString() %></div>
-          </div>
-          <div class="border-r border-slate-200">
-            <div class="text-[10px] text-slate-400 font-semibold uppercase">Payout</div>
-            <div class="font-bold text-blue-800 text-xs mt-0.5"><%= Number(totalPayout).toLocaleString() %></div>
-          </div>
-          <div>
-            <div class="text-[10px] text-slate-400 font-semibold uppercase">Net Result</div>
-            <div class="font-black text-xs mt-0.5 <%= netWinLose >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
-              <%= netWinLose >= 0 ? '+' : '' %><%= Number(netWinLose).toLocaleString() %>
-            </div>
-          </div>
-        </div>
-
         <% if (winLoseBets.length === 0) { %>
           <div class="bg-white p-8 rounded-xl border border-slate-300 text-center text-slate-400 font-medium">
             No settled statements found.
           </div>
         <% } else { %>
-          <% winLoseBets.forEach((b, index) => { %>
-            <div class="bg-white p-3 rounded-xl border border-slate-300 shadow-sm space-y-1.5">
-              <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                <div class="flex items-center space-x-2">
-                  <span class="w-5 h-5 rounded-full bg-[#133b5c] text-white flex items-center justify-center font-black text-[10px] font-mono shrink-0">
-                    <%= index + 1 %>
-                  </span>
-                  <span class="font-bold text-slate-800 text-xs"><%= b.home_team %> vs <%= b.away_team %></span>
-                </div>
-                <% if (b.status === 'WON') { %>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">WON</span>
-                <% } else if (b.status === 'LOST') { %>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">LOST</span>
-                <% } else { %>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800">DRAW</span>
-                <% } %>
-              </div>
-              <div class="flex justify-between items-center text-[11px] pl-7">
-                <span class="text-purple-900 font-bold"><%= b.choice %> (<%= b.odd %>)</span>
-                <span class="font-mono font-bold text-slate-500">Score: <%= b.home_score %> - <%= b.away_score %></span>
-              </div>
-              <div class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-50 font-mono pl-7">
-                <span class="text-slate-500">Stake: <strong><%= Number(b.amount).toLocaleString() %></strong></span>
-                <span class="<%= b.payout > 0 ? 'text-emerald-700' : 'text-slate-400' %> font-bold">
-                  Payout: <%= Number(b.payout || 0).toLocaleString() %> MMK
-                </span>
-              </div>
+          <div class="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
+                <thead class="bg-slate-100 text-slate-500 border-b border-slate-300 text-[9px] uppercase font-bold">
+                  <tr>
+                    <th class="p-2 border-r border-slate-200 text-center w-8">No.</th>
+                    <th class="p-2 border-r border-slate-200">Match</th>
+                    <th class="p-2 border-r border-slate-200 text-center">Selection</th>
+                    <th class="p-2 border-r border-slate-200 text-center">Score</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Stake</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Valid</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Comm</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Net</th>
+                    <th class="p-2 text-center">Result</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                  <% winLoseBets.forEach((b, index) => {
+                    const rowValid = Number(b.valid_amount || 0);
+                    const rowComm = (rowValid * commRate) / 100;
+                    const rowNet = (Number(b.payout || 0) - Number(b.amount || 0)) + rowComm;
+                    const badgeClass = b.status === 'WON' ? 'bg-emerald-100 text-emerald-800' : (b.status === 'LOST' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-800');
+                  %>
+                    <tr class="hover:bg-amber-50/50 transition">
+                      <td class="p-2 border-r border-slate-100 text-center font-bold text-slate-500"><%= index + 1 %></td>
+                      <td class="p-2 border-r border-slate-100 font-sans font-bold text-slate-800"><%= b.home_team %> vs <%= b.away_team %></td>
+                      <td class="p-2 border-r border-slate-100 text-center font-bold text-purple-900"><%= b.choice %> (<%= b.odd %>)</td>
+                      <td class="p-2 border-r border-slate-100 text-center text-slate-600"><%= b.home_score %>-<%= b.away_score %></td>
+                      <td class="p-2 border-r border-slate-100 text-right font-bold text-slate-800"><%= Number(b.amount).toLocaleString() %></td>
+                      <td class="p-2 border-r border-slate-100 text-right font-bold text-amber-800"><%= rowValid.toLocaleString() %></td>
+                      <td class="p-2 border-r border-slate-100 text-right font-bold text-purple-700">+<%= rowComm.toLocaleString() %></td>
+                      <td class="p-2 border-r border-slate-100 text-right font-black <%= rowNet >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
+                        <%= rowNet >= 0 ? '+' : '' %><%= rowNet.toLocaleString() %>
+                      </td>
+                      <td class="p-2 text-center">
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold <%= badgeClass %>"><%= b.status %></span>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+                <tfoot>
+                  <tr class="bg-slate-200 font-mono font-black border-t-2 border-slate-300 text-[11px]">
+                    <td colspan="4" class="p-2 text-center font-sans uppercase text-slate-800 border-r border-slate-300 text-[9px]">Total</td>
+                    <td class="p-2 text-right border-r border-slate-300 text-slate-900"><%= Number(totalStake).toLocaleString() %></td>
+                    <td class="p-2 text-right border-r border-slate-300 text-amber-950"><%= Number(totalValidAmount).toLocaleString() %></td>
+                    <td class="p-2 text-right border-r border-slate-300 text-purple-950">+<%= Number(commAmount).toLocaleString() %></td>
+                    <td class="p-2 text-right border-r border-slate-300 <%= netWinLose >= 0 ? 'text-emerald-800' : 'text-rose-700' %>">
+                      <%= netWinLose >= 0 ? '+' : '' %><%= Number(netWinLose).toLocaleString() %>
+                    </td>
+                    <td class="p-2 text-center">-</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          <% }) %>
+          </div>
         <% } %>
       </div>
     <% } %>
@@ -386,8 +402,125 @@
     </form>
   </div>
 
+  <!-- ================= CHANGE PASSWORD MODAL ================= -->
+  <div id="changePasswordModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full border border-slate-300 overflow-hidden text-slate-800 text-sm">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
+        <span class="flex items-center space-x-2">
+          <i data-lucide="key" class="w-4 h-4 text-amber-400"></i>
+          <span>Change Password</span>
+        </span>
+        <button type="button" onclick="closeChangePasswordModal()" class="text-slate-300 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="changePasswordForm" onsubmit="return handleChangePasswordSubmit(event)" class="p-5 space-y-3.5">
+        <div id="changePasswordAlert" class="hidden bg-rose-50 border border-rose-300 text-rose-700 text-xs font-semibold rounded px-3 py-2"></div>
+        <div id="changePasswordSuccess" class="hidden bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded px-3 py-2"></div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Current Password</label>
+          <input type="password" name="current_password" required class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">New Password</label>
+          <input type="password" name="new_password" required minlength="6" placeholder="At least 6 characters" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Confirm New Password</label>
+          <input type="password" name="confirm_password" required minlength="6" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">Cancel</button>
+          <button type="submit" id="btnChangePassword" class="px-5 py-2 bg-[#0b2545] hover:bg-[#133b5c] text-amber-300 font-bold rounded text-xs transition shadow">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
+
+    function openChangePasswordModal() {
+      const form = document.getElementById('changePasswordForm');
+      form.reset();
+      hideChangePasswordAlert();
+      hideChangePasswordSuccess();
+      document.getElementById('changePasswordModal').classList.remove('hidden');
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').classList.add('hidden');
+    }
+
+    function showChangePasswordAlert(msg) {
+      const box = document.getElementById('changePasswordAlert');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    function hideChangePasswordAlert() {
+      document.getElementById('changePasswordAlert').classList.add('hidden');
+    }
+
+    function showChangePasswordSuccess(msg) {
+      const box = document.getElementById('changePasswordSuccess');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    function hideChangePasswordSuccess() {
+      document.getElementById('changePasswordSuccess').classList.add('hidden');
+    }
+
+    async function handleChangePasswordSubmit(event) {
+      event.preventDefault();
+      hideChangePasswordAlert();
+      hideChangePasswordSuccess();
+
+      const form = event.target;
+      const newPassword = form.new_password.value;
+      const confirmPassword = form.confirm_password.value;
+
+      if (newPassword !== confirmPassword) {
+        showChangePasswordAlert('New password and confirm password do not match.');
+        return false;
+      }
+
+      const btn = document.getElementById('btnChangePassword');
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const payload = {
+        current_password: form.current_password.value,
+        new_password: newPassword
+      };
+
+      try {
+        const response = await fetch('/member/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showChangePasswordSuccess(data.message || 'Password updated successfully.');
+          form.reset();
+        } else {
+          showChangePasswordAlert(data.message || 'Failed to update password.');
+        }
+      } catch (err) {
+        showChangePasswordAlert('Network error. Please try again.');
+      }
+
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      return false;
+    }
 
     function openBetSheet(matchId, matchName, betType, choice, odd) {
       hideAlert();
@@ -465,8 +598,8 @@
         const data = await response.json();
 
         if (response.ok && data.success) {
-          // Bet အောင်မြင်လျှင် History tab သို့ ပို့ပေးမည်
-          window.location.href = '/member?tab=history';
+          // Bet အောင်မြင်လျှင် Sport tab မှာပဲ ဆက်နေပြီး balance ကို refresh လုပ်မည်
+          window.location.href = '/member?tab=sports';
         } else {
           // Error ဖြစ်ပါက Modal ထဲတွင် စာသားနီဖြင့် ပြသမည်
           showAlert(data.message || 'Bet placement failed.');
