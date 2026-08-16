@@ -1,0 +1,60 @@
+<!-- Sidebar Component -->
+<aside id="sidebar" class="fixed md:sticky top-0 left-0 h-screen w-64 bg-[#16213e] text-slate-200 border-r border-[#0f3460] flex flex-col justify-between z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in-out select-none">
+  <div>
+    <!-- Logo Header -->
+    <div class="h-14 bg-[#0f3460] px-4 flex items-center justify-between border-b border-[#1f4068]">
+      <div class="flex items-center space-x-2">
+        <span class="font-extrabold text-lg tracking-wider text-amber-400">MYANBET<span class="text-white">365</span></span>
+        <span class="bg-rose-600 text-xs font-bold text-white px-2 py-0.5 rounded">ADMIN</span>
+      </div>
+      <button id="closeSidebarBtn" class="md:hidden text-slate-300 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="py-3 text-sm font-semibold space-y-1">
+      <a href="/admin/members" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'members') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>Member Management</span>
+      </a>
+
+      <a href="/admin/add-match" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'add_match') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <span>Add Match</span>
+      </a>
+
+      <a href="/admin/match-list" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'match_list') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="list" class="w-5 h-5"></i>
+        <span>Match List</span>
+      </a>
+
+      <a href="/admin/result" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'result') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="check-square" class="w-5 h-5"></i>
+        <span>Result</span>
+      </a>
+
+      <a href="/admin/report" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'report') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+        <span>Report</span>
+      </a>
+
+      <a href="/admin/break" class="w-full flex items-center space-x-3 px-4 py-2.5 text-left border-l-4 <%= (page === 'break') ? 'border-amber-400 bg-[#1f4068] text-white' : 'border-transparent text-slate-300 hover:bg-[#1f4068]/60 hover:text-white' %> transition">
+        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+        <span>Break</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Admin Profile Footer -->
+  <div class="h-14 bg-[#0f3460] px-4 flex items-center justify-between border-t border-[#1f4068] text-sm">
+    <div class="truncate">
+      <span class="text-slate-400 text-xs block">Logged in as</span>
+      <strong class="text-amber-300 font-bold text-sm"><%= admin.username %></strong>
+    </div>
+    <a href="/logout" class="text-rose-400 hover:text-rose-300 flex items-center space-x-1.5 font-bold" title="Logout">
+      <i data-lucide="log-out" class="w-4 h-4"></i>
+      <span>Exit</span>
+    </a>
+  </div>
+</aside>

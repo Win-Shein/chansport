@@ -1,0 +1,94 @@
+const { pool, query } = require('./db');
+require('dotenv').config();
+
+async function resetDatabase() {
+  try {
+    console.log('🔄 Database အဟောင်းများကို ရှင်းထုတ်နေပါသည်...');
+
+    // ၁။ Table အဟောင်းများအားလုံးကို ဖျက်ချခြင်း
+    await query('DROP TABLE IF EXISTS bets CASCADE;');
+    await query('DROP TABLE IF EXISTS matches CASCADE;');
+    await query('DROP TABLE IF EXISTS users CASCADE;');
+
+    console.log('✅ Table အဟောင်းများ ရှင်းထုတ်ပြီးပါပြီ။');
+    console.log('🛠 Table အသစ်များ တည်ဆောက်နေပါသည်...');
+
+    // ၂။ Users Table (bet_limit နှင့် commission ပါဝင်ပြီး)
+    await query(`
+      CREATE TABLE users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'MEMBER',
+        balance NUMERIC(15, 2) DEFAULT 0.00,
+        commission NUMERIC(5, 2) DEFAULT 0.00,
+        bet_limit NUMERIC(15, 2) DEFAULT 100000.00,
+        status VARCHAR(20) DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // ၃။ Matches Table
+    await query(`
+      CREATE TABLE matches (
+        id SERIAL PRIMARY KEY,
+        match_time TIMESTAMP NOT NULL,
+        home_team VARCHAR(100) NOT NULL,
+        away_team VARCHAR(100) NOT NULL,
+        upper_team VARCHAR(10) NOT NULL DEFAULT 'HOME',
+        body_odd VARCHAR(50) NOT NULL DEFAULT '0-0',
+        total_odd VARCHAR(50) NOT NULL DEFAULT '2.5-0',
+        home_score INT DEFAULT NULL,
+        away_score INT DEFAULT NULL,
+        status VARCHAR(20) DEFAULT 'OPEN',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // ၄။ Bets Table (valid_amount ပါဝင်ပြီး)
+    await query(`
+      CREATE TABLE bets (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        match_id INT REFERENCES matches(id) ON DELETE CASCADE,
+        bet_type VARCHAR(30) NOT NULL,
+        choice VARCHAR(100) NOT NULL,
+        odd VARCHAR(50) NOT NULL,
+        amount NUMERIC(15, 2) NOT NULL,
+        payout NUMERIC(15, 2) DEFAULT 0.00,
+        valid_amount NUMERIC(15, 2) DEFAULT 0.00,
+        status VARCHAR(20) DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    console.log('✅ Table အသစ်များ အောင်မြင်စွာ တည်ဆောက်ပြီးပါပြီ။');
+    console.log('👤 Default Admin နှင့် Member စာရင်း သွင်းနေပါသည်...');
+
+    // ၅။ မူလ Admin Account (admin / admin123)
+    await query(`
+      INSERT INTO users (username, password, role, balance, commission, bet_limit, status)
+      VALUES ('admin', 'admin123', 'ADMIN', 0.00, 0.00, 0.00, 'ACTIVE');
+    `);
+
+    // ၆။ Demo Member Account (win / 123456)
+    await query(`
+      INSERT INTO users (username, password, role, balance, commission, bet_limit, status)
+      VALUES ('win', '123456', 'MEMBER', 100000.00, 5.00, 50000.00, 'ACTIVE');
+    `);
+
+    console.log('🎉 Database Clean Reset အောင်မြင်စွာ ပြီးဆုံးပါပြီ!');
+    console.log('------------------------------------------------------------');
+    console.log('🔑 Admin Account  : username = admin | password = admin123');
+    console.log('👤 Member Account : username = win   | password = 123456');
+    console.log('------------------------------------------------------------');
+
+  } catch (err) {
+    console.error('❌ Database Reset Error:', err.message);
+  } finally {
+    await pool.end();
+    process.exit();
+  }
+}
+
+resetDatabase();

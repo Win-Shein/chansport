@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Match - MYANBET365</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#f0f2f5] text-slate-800 font-sans min-h-screen flex flex-col md:flex-row antialiased text-sm">
+
+  <!-- Mobile Header -->
+  <header class="md:hidden bg-[#0f3460] text-white px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow">
+    <span class="font-black text-amber-400 tracking-wider text-lg">MYANBET<span class="text-white">365</span></span>
+    <button id="mobileMenuBtn" class="p-1.5 text-slate-200 hover:text-white">
+      <i data-lucide="menu" class="w-6 h-6"></i>
+    </button>
+  </header>
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+  <!-- Include Sidebar -->
+  <%- include('partials/sidebar') %>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
+
+    <!-- Top Subheader -->
+    <div class="bg-white border-b border-slate-300 px-5 py-3 flex items-center justify-between shadow-sm text-sm">
+      <div class="flex items-center space-x-3">
+        <span class="font-bold text-slate-800 uppercase tracking-wide">Match Management</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-blue-700 font-semibold">Add New Match</span>
+      </div>
+      <a href="/admin/match-list" class="text-xs text-slate-600 hover:text-blue-700 font-bold flex items-center space-x-1">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>View Match List</span>
+      </a>
+    </div>
+
+    <!-- Form Container -->
+    <div class="p-4 sm:p-5">
+      <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden max-w-3xl">
+        <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex items-center space-x-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i>
+          <span>Create New Match</span>
+        </div>
+
+        <form action="/admin/add-match" method="POST" class="p-5 space-y-4 text-sm">
+          
+          <!-- Separate Date & Time Inputs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Match Date</label>
+              <input type="date" id="match_date" name="match_date" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm focus:outline-none focus:border-blue-600">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Match Time</label>
+              <input type="time" id="match_time" name="match_time" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm focus:outline-none focus:border-blue-600">
+            </div>
+          </div>
+
+          <!-- Teams Input -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Home Team</label>
+              <input type="text" name="home_team" placeholder="e.g. Arsenal" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm font-semibold focus:outline-none focus:border-blue-600">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Away Team</label>
+              <input type="text" name="away_team" placeholder="e.g. Chelsea" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm font-semibold focus:outline-none focus:border-blue-600">
+            </div>
+          </div>
+
+          <!-- Odds Section -->
+          <div class="bg-[#f8fafc] p-4 border border-slate-200 rounded-lg space-y-4">
+            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Betting Odds Setting</div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Handicap / Upper Team (HOME / AWAY only) -->
+              <div>
+                <label class="block font-bold text-slate-600 mb-1 text-xs">Upper Team</label>
+                <select name="upper_team" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-blue-900 focus:outline-none focus:border-blue-600">
+                  <option value="HOME">HOME</option>
+                  <option value="AWAY">AWAY</option>
+                </select>
+              </div>
+
+              <!-- Body Odd -->
+              <div>
+                <label class="block font-bold text-slate-600 mb-1 text-xs">Body Odd</label>
+                <input type="text" name="body_odd" placeholder="e.g. 1-50 or 0.5+25" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-emerald-700 focus:outline-none focus:border-blue-600">
+              </div>
+
+              <!-- Goal Over/Under Odd -->
+              <div>
+                <label class="block font-bold text-slate-600 mb-1 text-xs">Goal Over/Under Odd</label>
+                <input type="text" name="total_odd" placeholder="e.g. 3-20 or 2.5-80" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-emerald-700 focus:outline-none focus:border-blue-600">
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="flex items-center space-x-3 pt-2">
+            <button type="submit" class="px-6 py-2.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-sm transition shadow">
+              Save Match
+            </button>
+            <a href="/admin/match-list" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-sm transition">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    // Auto-set Today's Date by default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('match_date').value = today;
+
+    // Mobile Sidebar Drawer
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    mobileMenuBtn?.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); sidebarOverlay.classList.remove('hidden'); });
+    closeSidebarBtn?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
+    sidebarOverlay?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
+  </script>
+</body>
+</html>
