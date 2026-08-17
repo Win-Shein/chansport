@@ -1083,7 +1083,7 @@ app.post('/admin/set-result/:id', requireAdmin, apiLimiter, async (req, res) => 
 
 // --- Server Listener ---
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 Promise.all([ensureSettingsTable(), ensureCreditLogsTable()])
   .then(() => {
     app.listen(PORT, () => {
