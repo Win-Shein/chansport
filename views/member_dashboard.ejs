@@ -318,6 +318,52 @@
             </div>
           </div>
         <% } %>
+
+        <!-- Deposit / Withdraw History -->
+        <div class="text-[11px] font-bold text-slate-600 px-1 pt-1">
+          <span>Deposit / Withdraw History</span>
+        </div>
+        <% if (creditLog.length === 0) { %>
+          <div class="bg-white p-6 rounded-xl border border-slate-300 text-center text-slate-400 font-medium text-xs">
+            No deposit/withdraw records found.
+          </div>
+        <% } else { %>
+          <div class="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
+                <thead class="bg-slate-100 text-slate-500 border-b border-slate-300 text-[9px] uppercase font-bold">
+                  <tr>
+                    <th class="p-2 border-r border-slate-200 text-center w-8">No.</th>
+                    <th class="p-2 border-r border-slate-200">Date &amp; Time</th>
+                    <th class="p-2 border-r border-slate-200 text-center">Type</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Amount</th>
+                    <th class="p-2 border-r border-slate-200 text-right">Balance After</th>
+                    <th class="p-2">Note</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                  <% creditLog.forEach((l, index) => {
+                    const isDeposit = l.type === 'DEPOSIT';
+                    const dateStr = new Date(l.created_at).toLocaleString();
+                  %>
+                    <tr class="hover:bg-amber-50/50 transition">
+                      <td class="p-2 border-r border-slate-100 text-center font-bold text-slate-500"><%= index + 1 %></td>
+                      <td class="p-2 border-r border-slate-100 font-sans text-slate-600 text-[10px]"><%= dateStr %></td>
+                      <td class="p-2 border-r border-slate-100 text-center">
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold <%= isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' %>"><%= l.type %></span>
+                      </td>
+                      <td class="p-2 border-r border-slate-100 text-right font-black <%= isDeposit ? 'text-emerald-700' : 'text-amber-800' %>">
+                        <%= isDeposit ? '+' : '-' %><%= Number(l.amount).toLocaleString() %>
+                      </td>
+                      <td class="p-2 border-r border-slate-100 text-right font-bold text-slate-800"><%= Number(l.balance_after).toLocaleString() %></td>
+                      <td class="p-2 font-sans text-slate-500 text-[10px]"><%= l.note || '-' %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% } %>
       </div>
     <% } %>
 

@@ -55,7 +55,7 @@
       <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm flex flex-wrap gap-2">
         <a href="/admin/report?tab=credit" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 <%= subTab === 'credit' ? 'bg-[#0f3460] text-amber-300 shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' %>">
           <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
-          <span>Credit Balance</span>
+          <span>Credit Log</span>
         </a>
         <a href="/admin/report?tab=outstanding" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 <%= subTab === 'outstanding' ? 'bg-[#0f3460] text-amber-300 shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' %>">
           <i data-lucide="clock" class="w-3.5 h-3.5"></i>
@@ -67,12 +67,37 @@
         </a>
       </div>
 
-      <!-- ================= 1. CREDIT BALANCES ================= -->
+      <!-- ================= 1. CREDIT LOG (Deposit / Withdraw History) ================= -->
       <% if (subTab === 'credit') { %>
+        <!-- Date Search Filter Bar -->
+        <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <form action="/admin/report" method="GET" class="flex items-center space-x-2">
+            <input type="hidden" name="tab" value="credit">
+            <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
+              <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
+              <span>Filter by Date:</span>
+            </label>
+            <input
+              type="date"
+              name="filter_date"
+              value="<%= filter_date %>"
+              class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
+            >
+            <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
+              Search
+            </button>
+            <% if (filter_date) { %>
+              <a href="/admin/report?tab=credit" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
+                Show All
+              </a>
+            <% } %>
+          </form>
+        </div>
+
         <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
           <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Member Credit Balances</span>
-            <span class="text-xs font-normal text-slate-200">Total Accounts: <%= creditMembers.length %></span>
+            <span>Member Credit Log <%= filter_date ? `(${filter_date})` : '' %></span>
+            <span class="text-xs font-normal text-slate-200">Total Accounts: <%= creditMembers.length %> &middot; Total Transactions: <%= creditLogs.length %></span>
           </div>
 
           <div class="overflow-x-auto">
@@ -83,25 +108,39 @@
                   <th class="p-3 border-r border-slate-300">Username</th>
                   <th class="p-3 border-r border-slate-300 text-right">Commission (%)</th>
                   <th class="p-3 border-r border-slate-300 text-right">Credit Balance</th>
-                  <th class="p-3 text-center w-28">Status</th>
+                  <th class="p-3 border-r border-slate-300 text-right bg-emerald-50 text-emerald-900">Deposited</th>
+                  <th class="p-3 border-r border-slate-300 text-right bg-amber-50 text-amber-900">Withdrawn</th>
+                  <th class="p-3 border-r border-slate-300 text-center w-28">Status</th>
+                  <th class="p-3 text-center w-24">Action</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
                 <% if (creditMembers.length === 0) { %>
                   <tr>
-                    <td colspan="5" class="p-6 text-center text-slate-500 font-medium">No members found.</td>
+                    <td colspan="8" class="p-6 text-center text-slate-500 font-medium">No members found.</td>
                   </tr>
                 <% } else { %>
                   <% creditMembers.forEach((m, idx) => { %>
                     <tr class="hover:bg-amber-50/60 transition">
                       <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
-                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800"><%= m.username %></td>
+                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
+                        <button type="button" onclick="showCreditLog(<%= m.id %>, '<%= m.username %>')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
+                          <%= m.username %>
+                        </button>
+                      </td>
                       <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800"><%= m.commission %>%</td>
                       <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-emerald-700 text-base"><%= Number(m.balance).toLocaleString() %> MMK</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 bg-emerald-50/40"><%= Number(m.total_deposit).toLocaleString() %></td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-amber-800 bg-amber-50/40"><%= Number(m.total_withdraw).toLocaleString() %></td>
                       <td class="p-3 text-center">
                         <span class="px-2.5 py-0.5 rounded text-xs font-bold <%= m.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' %>">
                           <%= m.status %>
                         </span>
+                      </td>
+                      <td class="p-3 text-center">
+                        <button type="button" onclick="showCreditLog(<%= m.id %>, '<%= m.username %>')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
+                          Details
+                        </button>
                       </td>
                     </tr>
                   <% }) %>
@@ -310,7 +349,7 @@
               <th class="p-2.5 border-r border-slate-300 text-center">Selection</th>
               <th class="p-2.5 border-r border-slate-300 text-center">Odd</th>
               <th class="p-2.5 border-r border-slate-300 text-right">Stake</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Payout</th>
+              <th class="p-2.5 border-r border-slate-300 text-right">Win / Lose</th>
               <th class="p-2.5 text-center">Result</th>
             </tr>
           </thead>
@@ -376,6 +415,52 @@
     </div>
   </div>
 
+  <!-- ================= CREDIT LOG DETAILS MODAL ================= -->
+  <div id="creditLogModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
+
+      <!-- Modal Header -->
+      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
+        <span class="flex items-center space-x-2">
+          <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
+          <span>Credit Log: <span id="creditLogModalMemberName" class="text-amber-300"></span></span>
+        </span>
+        <button onclick="closeCreditLogModal()" class="text-slate-300 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Content (Timestamped Transaction List) -->
+      <div class="p-4 overflow-y-auto flex-1">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
+            <tr>
+              <th class="p-2.5 border-r border-slate-300 text-center w-12">No.</th>
+              <th class="p-2.5 border-r border-slate-300">Date &amp; Time</th>
+              <th class="p-2.5 border-r border-slate-300 text-center">Type</th>
+              <th class="p-2.5 border-r border-slate-300 text-right">Amount</th>
+              <th class="p-2.5 border-r border-slate-300 text-right">Balance After</th>
+              <th class="p-2.5 border-r border-slate-300">Note</th>
+              <th class="p-2.5 text-center">By</th>
+            </tr>
+          </thead>
+          <tbody id="creditLogListBody" class="divide-y divide-slate-200 font-mono">
+            <!-- Dynamically Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 px-5 py-3 border-t border-slate-300 flex justify-between items-center text-xs">
+        <span id="creditLogModalCount" class="font-bold text-slate-600"></span>
+        <button type="button" onclick="closeCreditLogModal()" class="px-4 py-1.5 bg-[#0f3460] text-amber-300 font-bold rounded transition">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
@@ -420,6 +505,51 @@
       document.getElementById('outstandingBetsModal').classList.add('hidden');
     }
 
+    // Store All Credit Log (Deposit/Withdraw) entries passed from Backend
+    const allCreditLogs = <%- JSON.stringify(typeof creditLogs !== 'undefined' ? creditLogs : []) %>;
+
+    function showCreditLog(userId, username) {
+      document.getElementById('creditLogModalMemberName').textContent = username;
+      const tbody = document.getElementById('creditLogListBody');
+      tbody.innerHTML = '';
+
+      const userLogs = allCreditLogs.filter(l => l.user_id === userId);
+      document.getElementById('creditLogModalCount').textContent = `Total Transactions: ${userLogs.length}`;
+
+      if (userLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-sans font-medium">No deposit/withdraw history found for this member.</td></tr>`;
+      } else {
+        userLogs.forEach((l, index) => {
+          const isDeposit = l.type === 'DEPOSIT';
+          const badgeClass = isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
+          const amountClass = isDeposit ? 'text-emerald-700' : 'text-amber-800';
+          const amountSign = isDeposit ? '+' : '-';
+          const dateStr = new Date(l.created_at).toLocaleString();
+
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-amber-50/60 transition';
+          row.innerHTML = `
+            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">${index + 1}</td>
+            <td class="p-2.5 border-r border-slate-200 font-sans font-bold text-slate-700 text-xs">${dateStr}</td>
+            <td class="p-2.5 border-r border-slate-200 text-center">
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${l.type}</span>
+            </td>
+            <td class="p-2.5 border-r border-slate-200 text-right font-black ${amountClass}">${amountSign}${Number(l.amount).toLocaleString()}</td>
+            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(l.balance_after).toLocaleString()}</td>
+            <td class="p-2.5 border-r border-slate-200 font-sans text-slate-500 text-xs">${l.note || '-'}</td>
+            <td class="p-2.5 text-center font-sans font-bold text-slate-600 text-xs">${l.admin_username || '-'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      document.getElementById('creditLogModal').classList.remove('hidden');
+    }
+
+    function closeCreditLogModal() {
+      document.getElementById('creditLogModal').classList.add('hidden');
+    }
+
     function showMemberBets(userId, username) {
       document.getElementById('modalMemberName').textContent = username;
       const tbody = document.getElementById('memberBetsListBody');
@@ -436,6 +566,10 @@
           if (b.status === 'WON') badgeColor = 'bg-emerald-100 text-emerald-800';
           else if (b.status === 'LOST') badgeColor = 'bg-rose-100 text-rose-800';
 
+          const netWinLose = Number(b.payout || 0) - Number(b.amount || 0);
+          const netClass = netWinLose >= 0 ? 'text-emerald-700' : 'text-rose-600';
+          const netSign = netWinLose >= 0 ? '+' : '';
+
           const row = document.createElement('tr');
           row.className = 'hover:bg-amber-50/60 transition';
           row.innerHTML = `
@@ -445,7 +579,7 @@
             <td class="p-2.5 border-r border-slate-200 text-center font-bold text-purple-900">${b.choice}</td>
             <td class="p-2.5 border-r border-slate-200 text-center font-bold text-emerald-700">${b.odd}</td>
             <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-blue-900">${Number(b.payout || 0).toLocaleString()}</td>
+            <td class="p-2.5 border-r border-slate-200 text-right font-black ${netClass}">${netSign}${netWinLose.toLocaleString()}</td>
             <td class="p-2.5 text-center">
               <span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeColor}">${b.status}</span>
             </td>

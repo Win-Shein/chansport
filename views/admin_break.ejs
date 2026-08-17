@@ -62,13 +62,13 @@
         </form>
       </div>
 
-      <!-- ================= BREAK EXPOSURE MONITOR ================= -->
+      <!-- ================= BREAK EXPOSURE MONITOR (over-limit only) ================= -->
       <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden max-w-5xl">
         <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-          <span>Combined Exposure by Match &amp; Selection</span>
+          <span>Selections Over Break Limit</span>
           <span class="text-xs font-normal text-slate-200">
             Break Limit: <%= Number(breakLimit).toLocaleString() %> MMK &middot;
-            Over Limit: <%= exposureList.filter(e => e.isOverLimit).length %>
+            Over Limit: <%= exposureList.length %>
           </span>
         </div>
 
@@ -88,25 +88,21 @@
             <tbody class="divide-y divide-slate-200">
               <% if (exposureList.length === 0) { %>
                 <tr>
-                  <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No running bets on open/live matches right now.</td>
+                  <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No selections are currently over the break limit.</td>
                 </tr>
               <% } else { %>
                 <% exposureList.forEach((e, idx) => { %>
-                  <tr class="<%= e.isOverLimit ? 'bg-rose-50/70 hover:bg-rose-100/70' : 'hover:bg-amber-50/60' %> transition">
+                  <tr class="bg-rose-50/70 hover:bg-rose-100/70 transition">
                     <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
                     <td class="p-3 border-r border-slate-200 font-bold text-blue-950"><%= e.home_team %> vs <%= e.away_team %></td>
                     <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900"><%= e.choice %></td>
                     <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600"><%= e.bet_count %></td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black <%= e.isOverLimit ? 'text-rose-700' : 'text-slate-800' %> text-base">
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-rose-700 text-base">
                       <%= Number(e.total_staked).toLocaleString() %>
                     </td>
                     <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-500"><%= Number(breakLimit).toLocaleString() %></td>
                     <td class="p-3 text-right font-mono font-black text-base">
-                      <% if (e.isOverLimit) { %>
-                        <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+<%= Number(e.excess).toLocaleString() %></span>
-                      <% } else { %>
-                        <span class="text-slate-300">-</span>
-                      <% } %>
+                      <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+<%= Number(e.excess).toLocaleString() %></span>
                     </td>
                   </tr>
                 <% }) %>

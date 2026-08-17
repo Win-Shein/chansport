@@ -82,9 +82,29 @@
                     </td>
                     <td class="p-3 text-center whitespace-nowrap">
                       <div class="flex items-center justify-center space-x-2">
+                        <!-- Deposit Button -->
+                        <button
+                          type="button"
+                          onclick="openCreditModal('DEPOSIT', <%= m.id %>, '<%= m.username %>', <%= m.balance %>)"
+                          class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
+                        >
+                          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                          <span>Deposit</span>
+                        </button>
+
+                        <!-- Withdraw Button -->
+                        <button
+                          type="button"
+                          onclick="openCreditModal('WITHDRAW', <%= m.id %>, '<%= m.username %>', <%= m.balance %>)"
+                          class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
+                        >
+                          <i data-lucide="minus-circle" class="w-3.5 h-3.5"></i>
+                          <span>Withdraw</span>
+                        </button>
+
                         <!-- Edit Button -->
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onclick='openEditModal(<%= JSON.stringify(m) %>)'
                           class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
                         >
@@ -225,6 +245,48 @@
     </div>
   </div>
 
+  <!-- ================= DEPOSIT / WITHDRAW CREDIT MODAL ================= -->
+  <div id="creditModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full border border-slate-300 overflow-hidden">
+      <div id="creditModalHeader" class="text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
+        <span class="flex items-center space-x-2">
+          <i id="creditModalIcon" data-lucide="plus-circle" class="w-4 h-4 text-amber-300"></i>
+          <span id="creditModalTitle">Deposit Credit</span>
+        </span>
+        <button type="button" onclick="closeCreditModal()" class="text-slate-300 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="creditForm" onsubmit="return handleCreditSubmit(event)" class="p-5 space-y-3.5 text-sm">
+        <div id="creditAlert" class="hidden bg-rose-50 border border-rose-300 text-rose-700 text-xs font-semibold rounded px-3 py-2"></div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded px-3 py-2 flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-600">Member</span>
+          <span id="creditModalUsername" class="font-black text-slate-800"></span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded px-3 py-2 flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-600">Current Balance</span>
+          <span id="creditModalBalance" class="font-mono font-black text-emerald-700"></span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Amount (MMK)</label>
+          <input type="number" id="credit_amount" name="amount" min="1" step="1" required placeholder="e.g. 50000" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-mono font-bold">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Note (optional)</label>
+          <input type="text" id="credit_note" name="note" maxlength="200" placeholder="e.g. KBZ Pay transfer" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeCreditModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">Cancel</button>
+          <button type="submit" id="btnCreditSubmit" class="px-5 py-2 text-white font-bold rounded text-xs transition shadow">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
@@ -304,6 +366,97 @@
 
     function closeEditModal() {
       document.getElementById('editModal').classList.add('hidden');
+    }
+
+    let creditModalType = 'DEPOSIT';
+    let creditModalUserId = null;
+
+    function openCreditModal(type, userId, username, balance) {
+      creditModalType = type;
+      creditModalUserId = userId;
+
+      document.getElementById('creditForm').reset();
+      hideCreditAlert();
+      document.getElementById('creditModalUsername').textContent = username;
+      document.getElementById('creditModalBalance').textContent = Number(balance).toLocaleString() + ' MMK';
+
+      const header = document.getElementById('creditModalHeader');
+      const icon = document.getElementById('creditModalIcon');
+      const title = document.getElementById('creditModalTitle');
+      const btn = document.getElementById('btnCreditSubmit');
+
+      if (type === 'DEPOSIT') {
+        header.className = 'bg-emerald-700 text-white px-5 py-3 flex justify-between items-center font-bold text-sm';
+        icon.setAttribute('data-lucide', 'plus-circle');
+        title.textContent = 'Deposit Credit';
+        btn.className = 'px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition shadow';
+        btn.textContent = 'Confirm Deposit';
+      } else {
+        header.className = 'bg-amber-700 text-white px-5 py-3 flex justify-between items-center font-bold text-sm';
+        icon.setAttribute('data-lucide', 'minus-circle');
+        title.textContent = 'Withdraw Credit';
+        btn.className = 'px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-xs transition shadow';
+        btn.textContent = 'Confirm Withdraw';
+      }
+      lucide.createIcons();
+
+      document.getElementById('creditModal').classList.remove('hidden');
+    }
+
+    function closeCreditModal() {
+      document.getElementById('creditModal').classList.add('hidden');
+    }
+
+    function showCreditAlert(msg) {
+      const box = document.getElementById('creditAlert');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    function hideCreditAlert() {
+      document.getElementById('creditAlert').classList.add('hidden');
+    }
+
+    async function handleCreditSubmit(event) {
+      event.preventDefault();
+      hideCreditAlert();
+
+      const btn = document.getElementById('btnCreditSubmit');
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const payload = {
+        amount: document.getElementById('credit_amount').value,
+        note: document.getElementById('credit_note').value
+      };
+
+      const endpoint = creditModalType === 'DEPOSIT'
+        ? '/admin/deposit-member/' + creditModalUserId
+        : '/admin/withdraw-member/' + creditModalUserId;
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          window.location.reload();
+        } else {
+          showCreditAlert(data.message || 'Transaction failed.');
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+        }
+      } catch (err) {
+        showCreditAlert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+
+      return false;
     }
 
     // Mobile Sidebar Drawer

@@ -116,6 +116,22 @@ async function isBettingLocked() {
   return res.rows.length > 0 ? res.rows[0].betting_locked : false;
 }
 
+// ===== CREDIT LOGS (Member Deposit / Withdraw history) =====
+async function ensureCreditLogsTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS credit_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      type VARCHAR(10) NOT NULL,
+      amount NUMERIC(15, 2) NOT NULL,
+      balance_after NUMERIC(15, 2) NOT NULL,
+      note VARCHAR(200),
+      admin_username VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
+
 // --- Authentication Middlewares ---
 
 const requireAuth = (req, res, next) => {
@@ -248,10 +264,10 @@ app.get('/member', requireAuth, async (req, res) => {
     const userRes = await query('SELECT * FROM users WHERE id = $1', [userId]);
     const bettingLocked = await isBettingLocked();
 
-    // 1. Active open/live matches
+    // 1. Active open/live matches whose scheduled kickoff time hasn't arrived yet
     const matchesRes = await query(`
-      SELECT * FROM matches 
-      WHERE status IN ('OPEN', 'LIVE') 
+      SELECT * FROM matches
+      WHERE status IN ('OPEN', 'LIVE') AND match_time > NOW()
       ORDER BY match_time ASC
     `);
 
@@ -274,12 +290,25 @@ app.get('/member', requireAuth, async (req, res) => {
     let winLoseParams = [userId];
 
     if (filter_date) {
-      winLoseQuery += ` AND DATE(b.created_at) = $2`;
+      // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
+      winLoseQuery += ` AND DATE(b.created_at + INTERVAL '12 hours') = $2`;
       winLoseParams.push(filter_date);
     }
     winLoseQuery += ` ORDER BY b.created_at DESC`;
 
     const winLoseRes = await query(winLoseQuery, winLoseParams);
+
+    // 3b. Own Deposit / Withdraw History (same date filter as the Win/Lose bets above)
+    let creditLogQuery = `SELECT * FROM credit_logs WHERE user_id = $1`;
+    const creditLogParams = [userId];
+    if (filter_date) {
+      // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
+      creditLogQuery += ` AND DATE(created_at + INTERVAL '12 hours') = $2`;
+      creditLogParams.push(filter_date);
+    }
+    creditLogQuery += ` ORDER BY created_at DESC`;
+
+    const creditLogRes = await query(creditLogQuery, creditLogParams);
 
     // Calculate Summary Metrics (net result includes commission earned on valid amount)
     const commRate = Number(userRes.rows[0].commission || 0);
@@ -296,6 +325,7 @@ app.get('/member', requireAuth, async (req, res) => {
       matches: matchesRes.rows,
       runningBets: runningBetsRes.rows,
       winLoseBets: winLoseRes.rows,
+      creditLog: creditLogRes.rows,
       totalStake,
       totalValidAmount,
       commRate,
@@ -347,15 +377,23 @@ app.post('/member/bet', requireAuth, apiLimiter, async (req, res) => {
       return res.status(403).json({ success: false, message: 'သင့်အကောင့်ကို ပိတ်ထားပါသဖြင့် လောင်း၍မရနိုင်ပါ။' });
     }
 
-    // Match must exist and still be open for betting — never trust a client-supplied match_id blindly
+    // Match must exist and still be open for betting — never trust a client-supplied match_id blindly.
+    // "betting_closed" is computed by Postgres itself (using the server's Myanmar-time session
+    // clock) so we never have to compare timestamps in JS and risk a timezone mismatch.
     const matchRes = await query(
-      "SELECT * FROM matches WHERE id = $1 AND status IN ('OPEN', 'LIVE')",
+      `SELECT *, (match_time <= NOW() + INTERVAL '5 minutes') as betting_closed
+       FROM matches WHERE id = $1 AND status IN ('OPEN', 'LIVE')`,
       [match_id]
     );
     const match = matchRes.rows[0];
 
     if (!match) {
       return res.status(400).json({ success: false, message: 'ဒီပွဲစဉ်သည် လောင်းကြေး လက်ခံခြင်း မရှိတော့ပါ။' });
+    }
+
+    // Close betting 5 minutes before kickoff
+    if (match.betting_closed) {
+      return res.status(400).json({ success: false, message: 'ပွဲစဉ် မစခင် ၅ မိနစ် အတွင်း လောင်းကြေး လက်ခံခြင်း မရှိတော့ပါ။' });
     }
 
     // Derive the authoritative odd/handicap from the match record itself.
@@ -540,6 +578,17 @@ app.get('/admin/report', requireAdmin, async (req, res) => {
       "SELECT id, username, balance, COALESCE(commission, 0) as commission, COALESCE(bet_limit, 100000) as bet_limit, COALESCE(status, 'ACTIVE') as status, created_at FROM users WHERE role = 'MEMBER' ORDER BY balance DESC"
     );
 
+    // 1b. Credit Log (Deposit / Withdraw history, exact timestamps, per-member breakdown on click)
+    // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
+    const creditLogsQuery = `
+      SELECT cl.*, u.username
+      FROM credit_logs cl
+      JOIN users u ON cl.user_id = u.id
+      ${filter_date ? "WHERE DATE(cl.created_at + INTERVAL '12 hours') = $1" : ''}
+      ORDER BY cl.created_at DESC
+    `;
+    const creditLogsRes = await query(creditLogsQuery, filter_date ? [filter_date] : []);
+
     // 2. Outstanding Data
     const outstandingRes = await query(`
       SELECT b.*, u.username, m.home_team, m.away_team, m.match_time, m.body_odd, m.total_odd
@@ -551,20 +600,22 @@ app.get('/admin/report', requireAdmin, async (req, res) => {
     `);
 
     // 3. Settled Bets (All Detailed Slips for Modal Breakdown)
+    // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
     const detailedBetsQuery = `
       SELECT b.*, u.username, m.home_team, m.away_team, m.home_score, m.away_score, m.match_time
       FROM bets b
       JOIN users u ON b.user_id = u.id
       JOIN matches m ON b.match_id = m.id
       WHERE b.status IN ('WON', 'LOST', 'DRAW')
-      ${filter_date ? 'AND DATE(b.created_at) = $1' : ''}
+      ${filter_date ? "AND DATE(b.created_at + INTERVAL '12 hours') = $1" : ''}
       ORDER BY b.created_at DESC
     `;
     const detailedBetsRes = await query(detailedBetsQuery, filter_date ? [filter_date] : []);
 
     // 4. Win/Lose Aggregated Member Data by Valid Amount
+    // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
     let winLoseQuery = `
-      SELECT 
+      SELECT
         u.id as user_id,
         u.username,
         COALESCE(u.commission, 0) as comm_rate,
@@ -574,7 +625,7 @@ app.get('/admin/report', requireAdmin, async (req, res) => {
         COALESCE(SUM(b.valid_amount), 0) as valid_amount
       FROM users u
       LEFT JOIN bets b ON u.id = b.user_id AND b.status IN ('WON', 'LOST', 'DRAW')
-      ${filter_date ? 'AND DATE(b.created_at) = $1' : ''}
+      ${filter_date ? "AND DATE(b.created_at + INTERVAL '12 hours') = $1" : ''}
       WHERE u.role = 'MEMBER'
       GROUP BY u.id, u.username, u.commission
       ORDER BY turnover DESC
@@ -621,11 +672,30 @@ app.get('/admin/report', requireAdmin, async (req, res) => {
     const outstandingByMember = Array.from(outstandingByMemberMap.values())
       .sort((a, b) => b.total_stake - a.total_stake);
 
+    // 6. Credit Log totals per member (Deposited / Withdrawn), for the summary table;
+    // the full timestamped log is revealed in a modal when that member is clicked
+    const creditTotalsMap = new Map();
+    for (const log of creditLogsRes.rows) {
+      const key = log.user_id;
+      if (!creditTotalsMap.has(key)) {
+        creditTotalsMap.set(key, { total_deposit: 0, total_withdraw: 0 });
+      }
+      const entry = creditTotalsMap.get(key);
+      if (log.type === 'DEPOSIT') entry.total_deposit += Number(log.amount || 0);
+      else entry.total_withdraw += Number(log.amount || 0);
+    }
+    const creditMembers = creditMembersRes.rows.map(m => ({
+      ...m,
+      total_deposit: creditTotalsMap.get(m.id)?.total_deposit || 0,
+      total_withdraw: creditTotalsMap.get(m.id)?.total_withdraw || 0
+    }));
+
     res.render('admin_report', {
       admin: req.session.user,
       subTab,
       filter_date: filter_date || '',
-      creditMembers: creditMembersRes.rows,
+      creditMembers,
+      creditLogs: creditLogsRes.rows,
       outstandingBets: outstandingRes.rows,
       outstandingByMember,
       winLoseList,
@@ -656,16 +726,20 @@ app.get('/admin/break', requireAdmin, async (req, res) => {
       ORDER BY SUM(b.amount) DESC
     `);
 
-    const exposureList = exposureRes.rows.map(row => {
-      const totalStaked = Number(row.total_staked) || 0;
-      const excess = totalStaked - breakLimit;
-      return {
-        ...row,
-        total_staked: totalStaked,
-        excess: excess > 0 ? excess : 0,
-        isOverLimit: excess > 0
-      };
-    });
+    // Only surface match+selection groups whose combined stake actually exceeds
+    // the break limit — this page is a risk alert list, not a full exposure dump.
+    const exposureList = exposureRes.rows
+      .map(row => {
+        const totalStaked = Number(row.total_staked) || 0;
+        const excess = totalStaked - breakLimit;
+        return {
+          ...row,
+          total_staked: totalStaked,
+          excess,
+          isOverLimit: excess > 0
+        };
+      })
+      .filter(e => e.isOverLimit);
 
     const bettingLocked = await isBettingLocked();
 
@@ -757,6 +831,79 @@ app.post('/admin/edit-member/:id', requireAdmin, apiLimiter, async (req, res) =>
     res.redirect('/admin/members');
   } catch (err) {
     return fail(req, res, err, 400);
+  }
+});
+
+// Deposit Credit (adds to member balance, logs to credit_logs)
+app.post('/admin/deposit-member/:id', requireAdmin, apiLimiter, async (req, res) => {
+  const { id } = req.params;
+  const amount = parseFloat(req.body.amount);
+  const note = cleanString(req.body.note, 200);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid member id.' });
+  }
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ success: false, message: 'Deposit amount must be a positive number.' });
+  }
+
+  try {
+    const memberRes = await query("SELECT balance FROM users WHERE id = $1 AND role = 'MEMBER'", [id]);
+    const member = memberRes.rows[0];
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found.' });
+    }
+
+    const newBalance = parseFloat(member.balance) + amount;
+    await query('UPDATE users SET balance = $1 WHERE id = $2', [newBalance, id]);
+    await query(
+      `INSERT INTO credit_logs (user_id, type, amount, balance_after, note, admin_username) VALUES ($1, 'DEPOSIT', $2, $3, $4, $5)`,
+      [id, amount, newBalance, note, req.session.user.username]
+    );
+
+    return res.json({ success: true, message: 'Deposit successful.', newBalance });
+  } catch (err) {
+    console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.message);
+    return res.status(500).json({ success: false, message: 'System error. Please try again.' });
+  }
+});
+
+// Withdraw Credit (deducts from member balance, logs to credit_logs)
+app.post('/admin/withdraw-member/:id', requireAdmin, apiLimiter, async (req, res) => {
+  const { id } = req.params;
+  const amount = parseFloat(req.body.amount);
+  const note = cleanString(req.body.note, 200);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid member id.' });
+  }
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ success: false, message: 'Withdraw amount must be a positive number.' });
+  }
+
+  try {
+    const memberRes = await query("SELECT balance FROM users WHERE id = $1 AND role = 'MEMBER'", [id]);
+    const member = memberRes.rows[0];
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found.' });
+    }
+
+    const currentBalance = parseFloat(member.balance);
+    if (amount > currentBalance) {
+      return res.status(400).json({ success: false, message: `Cannot withdraw more than the member's current balance (${currentBalance.toLocaleString()} MMK).` });
+    }
+
+    const newBalance = currentBalance - amount;
+    await query('UPDATE users SET balance = $1 WHERE id = $2', [newBalance, id]);
+    await query(
+      `INSERT INTO credit_logs (user_id, type, amount, balance_after, note, admin_username) VALUES ($1, 'WITHDRAW', $2, $3, $4, $5)`,
+      [id, amount, newBalance, note, req.session.user.username]
+    );
+
+    return res.json({ success: true, message: 'Withdrawal successful.', newBalance });
+  } catch (err) {
+    console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.message);
+    return res.status(500).json({ success: false, message: 'System error. Please try again.' });
   }
 });
 
@@ -937,13 +1084,13 @@ app.post('/admin/set-result/:id', requireAdmin, apiLimiter, async (req, res) => 
 // --- Server Listener ---
 
 const PORT = process.env.PORT || 3000;
-ensureSettingsTable()
+Promise.all([ensureSettingsTable(), ensureCreditLogsTable()])
   .then(() => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   })
   .catch(err => {
-    console.error('❌ Failed to initialize app_settings table:', err.message);
+    console.error('❌ Failed to initialize app tables:', err.message);
     process.exit(1);
   });
