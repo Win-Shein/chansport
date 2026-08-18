@@ -116,6 +116,22 @@ async function isBettingLocked() {
   return res.rows.length > 0 ? res.rows[0].betting_locked : false;
 }
 
+// Returns today's business date (YYYY-MM-DD) using the noon-to-noon cutoff
+async function getBusinessToday() {
+  const res = await query("SELECT DATE(NOW() + INTERVAL '12 hours')::text as today");
+  return res.rows[0].today;
+}
+
+// Resolves the effective date filter for a "daily records" page:
+// - ?filter_date=all      -> show everything, no date filter applied
+// - ?filter_date=YYYY-MM-DD -> filter to that specific business day
+// - no filter_date at all -> default to TODAY's business day (not "show all")
+async function resolveFilterDate(rawFilterDate) {
+  const showAll = rawFilterDate === 'all';
+  const filter_date = showAll ? '' : (rawFilterDate || await getBusinessToday());
+  return { filter_date, showAll };
+}
+
 // ===== CREDIT LOGS (Member Deposit / Withdraw history) =====
 async function ensureCreditLogsTable() {
   await query(`
@@ -257,12 +273,13 @@ app.post('/member/change-password', requireAuth, apiLimiter, handleChangePasswor
 // Member Dashboard (GET) - Tabs: sports, history, winlose
 app.get('/member', requireAuth, async (req, res) => {
   const currentTab = req.query.tab || 'sports';
-  const { filter_date } = req.query;
   const userId = req.session.user.id;
 
   try {
     const userRes = await query('SELECT * FROM users WHERE id = $1', [userId]);
     const bettingLocked = await isBettingLocked();
+    // Win/Lose tab defaults to today's business day; ?filter_date=all shows everything
+    const { filter_date, showAll } = await resolveFilterDate(req.query.filter_date);
 
     // 1. Active open/live matches whose scheduled kickoff time hasn't arrived yet
     const matchesRes = await query(`
@@ -321,7 +338,8 @@ app.get('/member', requireAuth, async (req, res) => {
     res.render('member_dashboard', {
       user: userRes.rows[0],
       currentTab,
-      filter_date: filter_date || '',
+      filter_date,
+      showAll,
       matches: matchesRes.rows,
       runningBets: runningBetsRes.rows,
       winLoseBets: winLoseRes.rows,
@@ -479,15 +497,15 @@ app.get('/admin/add-match', requireAdmin, (req, res) => {
   });
 });
 
-// 3. Match List Page (GET)
+// 3. Match List Page (GET) - defaults to today's business day; ?filter_date=all shows everything
 app.get('/admin/match-list', requireAdmin, async (req, res) => {
-  const { filter_date } = req.query;
-
   try {
+    const { filter_date, showAll } = await resolveFilterDate(req.query.filter_date);
+
     let sqlQuery = `
-      SELECT * FROM matches 
-      ORDER BY 
-        CASE 
+      SELECT * FROM matches
+      ORDER BY
+        CASE
           WHEN status = 'LIVE' THEN 1
           WHEN status = 'OPEN' THEN 2
           ELSE 3
@@ -517,7 +535,8 @@ app.get('/admin/match-list', requireAdmin, async (req, res) => {
     res.render('admin_match_list', {
       admin: req.session.user,
       matches: matchesRes.rows,
-      filter_date: filter_date || '',
+      filter_date,
+      showAll,
       page: 'match_list'
     });
   } catch (err) {
@@ -525,15 +544,15 @@ app.get('/admin/match-list', requireAdmin, async (req, res) => {
   }
 });
 
-// 4. Result Page (GET)
+// 4. Result Page (GET) - defaults to today's business day; ?filter_date=all shows everything
 app.get('/admin/result', requireAdmin, async (req, res) => {
-  const { filter_date } = req.query;
-
   try {
+    const { filter_date, showAll } = await resolveFilterDate(req.query.filter_date);
+
     let sqlQuery = `
-      SELECT * FROM matches 
-      ORDER BY 
-        CASE 
+      SELECT * FROM matches
+      ORDER BY
+        CASE
           WHEN home_score IS NULL THEN 1
           ELSE 2
         END ASC,
@@ -561,7 +580,8 @@ app.get('/admin/result', requireAdmin, async (req, res) => {
     res.render('admin_result', {
       admin: req.session.user,
       matches: matchesRes.rows,
-      filter_date: filter_date || '',
+      filter_date,
+      showAll,
       page: 'result'
     });
   } catch (err) {
@@ -572,9 +592,12 @@ app.get('/admin/result', requireAdmin, async (req, res) => {
 // 5. Report Page (GET) - Credit, Outstanding, Win/Lose with Valid Amount & Commission
 app.get('/admin/report', requireAdmin, async (req, res) => {
   const subTab = req.query.tab || 'credit';
-  const { filter_date } = req.query;
 
   try {
+    // Credit Log / Win-Lose tabs default to today's business day; ?filter_date=all shows everything.
+    // The Outstanding tab ignores this entirely (it's live PENDING bets, not a historical daily record).
+    const { filter_date, showAll } = await resolveFilterDate(req.query.filter_date);
+
     // 1. Credit Data
     const creditMembersRes = await query(
       "SELECT id, username, balance, COALESCE(commission, 0) as commission, COALESCE(bet_limit, 100000) as bet_limit, COALESCE(status, 'ACTIVE') as status, created_at FROM users WHERE role = 'MEMBER' ORDER BY balance DESC"
@@ -695,7 +718,8 @@ app.get('/admin/report', requireAdmin, async (req, res) => {
     res.render('admin_report', {
       admin: req.session.user,
       subTab,
-      filter_date: filter_date || '',
+      filter_date,
+      showAll,
       creditMembers,
       creditLogs: creditLogsRes.rows,
       outstandingBets: outstandingRes.rows,

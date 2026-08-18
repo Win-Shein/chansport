@@ -251,9 +251,13 @@
           <button type="submit" class="px-3 py-1 bg-[#0b2545] text-amber-300 font-bold rounded text-xs">
             Filter
           </button>
-          <% if (filter_date) { %>
-            <a href="/member?tab=winlose" class="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded text-xs">
+          <% if (!showAll) { %>
+            <a href="/member?tab=winlose&filter_date=all" class="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded text-xs">
               All
+            </a>
+          <% } else { %>
+            <a href="/member?tab=winlose" class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded text-xs">
+              Today
             </a>
           <% } %>
         </form>

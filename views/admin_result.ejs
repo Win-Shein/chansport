@@ -45,20 +45,24 @@
         <form action="/admin/result" method="GET" class="flex items-center space-x-2">
           <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
             <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-            <span>Filter by Date:</span>
+            <span><%= showAll ? 'Filter by Date:' : 'Showing (business day):' %></span>
           </label>
-          <input 
-            type="date" 
-            name="filter_date" 
+          <input
+            type="date"
+            name="filter_date"
             value="<%= filter_date %>"
             class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
           >
           <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
             Search
           </button>
-          <% if (filter_date) { %>
-            <a href="/admin/result" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
+          <% if (!showAll) { %>
+            <a href="/admin/result?filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
               Show All
+            </a>
+          <% } else { %>
+            <a href="/admin/result" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
+              Today
             </a>
           <% } %>
         </form>
