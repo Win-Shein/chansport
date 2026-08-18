@@ -497,11 +497,12 @@ app.get('/admin/match-list', requireAdmin, async (req, res) => {
     let queryParams = [];
 
     if (filter_date) {
+      // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
       sqlQuery = `
-        SELECT * FROM matches 
-        WHERE DATE(match_time) = $1
-        ORDER BY 
-          CASE 
+        SELECT * FROM matches
+        WHERE DATE(match_time + INTERVAL '12 hours') = $1
+        ORDER BY
+          CASE
             WHEN status = 'LIVE' THEN 1
             WHEN status = 'OPEN' THEN 2
             ELSE 3
@@ -541,11 +542,12 @@ app.get('/admin/result', requireAdmin, async (req, res) => {
     let queryParams = [];
 
     if (filter_date) {
+      // Business day runs noon-to-noon (cutoff 11:59 AM), not midnight-to-midnight
       sqlQuery = `
-        SELECT * FROM matches 
-        WHERE DATE(match_time) = $1
-        ORDER BY 
-          CASE 
+        SELECT * FROM matches
+        WHERE DATE(match_time + INTERVAL '12 hours') = $1
+        ORDER BY
+          CASE
             WHEN home_score IS NULL THEN 1
             ELSE 2
           END ASC,
