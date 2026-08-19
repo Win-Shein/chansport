@@ -796,11 +796,11 @@ app.post('/admin/toggle-bet-lock', requireAdmin, apiLimiter, async (req, res) =>
 
 // --- Admin Member Actions (POST Routes) ---
 
-// Create Member
+// Create Member (always starts at 0 balance — use Deposit afterward to add credit,
+// so every balance change is properly logged in credit_logs)
 app.post('/admin/create-member', requireAdmin, apiLimiter, async (req, res) => {
   const username = cleanString(req.body.username, 50);
   const password = String(req.body.password || '');
-  const initialBalance = parseFloat(req.body.initialBalance) || 0;
   const commission = parseFloat(req.body.commission) || 0;
   const bet_limit = parseFloat(req.body.bet_limit) || 100000;
 
@@ -811,8 +811,8 @@ app.post('/admin/create-member', requireAdmin, apiLimiter, async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
     await query(
-      "INSERT INTO users (username, password, role, balance, commission, bet_limit, status) VALUES ($1, $2, 'MEMBER', $3, $4, $5, 'ACTIVE')",
-      [username, passwordHash, initialBalance, commission, bet_limit]
+      "INSERT INTO users (username, password, role, balance, commission, bet_limit, status) VALUES ($1, $2, 'MEMBER', 0.00, $3, $4, 'ACTIVE')",
+      [username, passwordHash, commission, bet_limit]
     );
     return res.json({ success: true });
   } catch (err) {

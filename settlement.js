@@ -2,6 +2,10 @@
  * MYANMAR FOOTBALL ODDS SETTLEMENT ENGINE
  */
 
+// Any winning profit (full win OR a partial "ပြားစွန်း" handicap-fraction win)
+// is paid at 95%, not 100% — the house keeps a 5% cut on winnings only, never on losses.
+const WIN_PROFIT_RATE = 0.95;
+
 function parseMyanmarOdd(oddStr) {
   if (!oddStr) return { hdc: 0, sign: '-', val: 0 };
   const str = oddStr.toString().trim();
@@ -81,9 +85,9 @@ function settleMyanmarBet(bet, match, homeScore, awayScore) {
 
   // 3. PAYOUT & VALID AMOUNT CALCULATION
 
-  // အပြည့်နိုင်
+  // အပြည့်နိုင် (မူရင်းလောင်းကြေး + အမြတ် ၉၅%)
   if (isFullWin) {
-    return { status: 'WON', payout: amount * 2, valid_amount: amount };
+    return { status: 'WON', payout: amount + (amount * WIN_PROFIT_RATE), valid_amount: amount };
   }
 
   // အပြည့်ရှုံး
@@ -101,12 +105,12 @@ function settleMyanmarBet(bet, match, homeScore, awayScore) {
     const effectiveStake = amount * rate;
 
     if (parsedOdd.sign === '-') {
-      // အနုတ်ကြေး: ရှုံးသည် (ကျန်ငွေ ပြန်အမ်း)
+      // အနုတ်ကြေး: ရှုံးသည် (ကျန်ငွေ ပြန်အမ်း) — ရှုံးရင် အပြတ် ၁၀၀% ဖြစ်၍ ဒီနေရာမှာ ဖြတ်တောက်စရာ မလို
       const payout = amount - effectiveStake;
       return { status: 'LOST', payout: payout, valid_amount: effectiveStake };
     } else {
-      // အပေါင်းကြေး: နိုင်သည် (မူရင်းလောင်းကြေး + ပြားစွန်းအမြတ်)
-      const payout = amount + effectiveStake;
+      // အပေါင်းကြေး: နိုင်သည် (မူရင်းလောင်းကြေး + ပြားစွန်းအမြတ် ၉၅%)
+      const payout = amount + (effectiveStake * WIN_PROFIT_RATE);
       return { status: 'WON', payout: payout, valid_amount: effectiveStake };
     }
   }
