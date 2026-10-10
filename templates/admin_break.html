@@ -14,7 +14,7 @@
   </header>
 
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
-  <%- include('partials/sidebar') %>
+  {% include "partials/sidebar.html" %}
 
   <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
     <div class="bg-white border-b border-slate-300 px-5 py-3 flex items-center justify-between shadow-sm text-sm">
@@ -22,31 +22,31 @@
     </div>
 
     <div class="p-4 sm:p-5 space-y-4">
-      <% if (bettingLocked) { %>
+      {% if betting_locked %}
         <div class="bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2.5 rounded-lg text-xs font-bold flex items-center space-x-2 max-w-3xl">
           <i data-lucide="alert-triangle" class="w-4 h-4"></i>
           <span>Betting is currently LOCKED site-wide. Members can log in and browse, but cannot place any new bets.</span>
         </div>
-      <% } %>
+      {% endif %}
 
       <div class="bg-white p-4 rounded-lg border border-slate-300 shadow-sm space-y-4 max-w-3xl">
         <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
           <div>
             <div class="font-bold text-slate-800 text-sm">Global Bet Lock</div>
             <div class="text-slate-500 text-xs mt-0.5">
-              <% if (bettingLocked) { %>
+              {% if betting_locked %}
                 Betting is locked. Members cannot place new bets until you resume.
-              <% } else { %>
+              {% else %}
                 Temporarily suspend all betting activity system-wide
-              <% } %>
+              {% endif %}
             </div>
           </div>
-          <form action="/admin/toggle-bet-lock" method="POST" onsubmit="return confirm('<%= bettingLocked ? 'Resume betting site-wide? Members will be able to place bets again.' : 'Stop ALL betting site-wide? Members will not be able to place any new bets until you resume.' %>');">
-            <% if (bettingLocked) { %>
+          <form action="/admin/toggle-bet-lock" method="POST" onsubmit="return confirm('{% if betting_locked %}Resume betting site-wide? Members will be able to place bets again.{% else %}Stop ALL betting site-wide? Members will not be able to place any new bets until you resume.{% endif %}');">
+            {% if betting_locked %}
               <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs">Resume Betting</button>
-            <% } else { %>
+            {% else %}
               <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs">Emergency Stop</button>
-            <% } %>
+            {% endif %}
           </form>
         </div>
 
@@ -56,7 +56,7 @@
             <div class="text-slate-500 text-xs mt-0.5">Combined member stakes on the same match &amp; selection over this amount are flagged below</div>
           </div>
           <div class="flex items-center space-x-2">
-            <input type="number" name="break_limit" value="<%= breakLimit %>" min="0" step="1000" class="w-28 px-3 py-1.5 border border-slate-300 rounded text-sm bg-white">
+            <input type="number" name="break_limit" value="{{ break_limit }}" min="0" step="1000" class="w-28 px-3 py-1.5 border border-slate-300 rounded text-sm bg-white">
             <button type="submit" class="px-3 py-1.5 bg-[#0f3460] text-amber-300 text-xs rounded font-bold">Apply</button>
           </div>
         </form>
@@ -67,8 +67,8 @@
         <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
           <span>Selections Over Break Limit</span>
           <span class="text-xs font-normal text-slate-200">
-            Break Limit: <%= Number(breakLimit).toLocaleString() %> MMK &middot;
-            Over Limit: <%= exposureList.length %>
+            Break Limit: {{ break_limit | money }} MMK &middot;
+            Over Limit: {{ exposure_list | length }}
           </span>
         </div>
 
@@ -86,27 +86,27 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <% if (exposureList.length === 0) { %>
+              {% if exposure_list | length == 0 %}
                 <tr>
                   <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No selections are currently over the break limit.</td>
                 </tr>
-              <% } else { %>
-                <% exposureList.forEach((e, idx) => { %>
+              {% else %}
+                {% for e in exposure_list %}
                   <tr class="bg-rose-50/70 hover:bg-rose-100/70 transition">
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
-                    <td class="p-3 border-r border-slate-200 font-bold text-blue-950"><%= e.home_team %> vs <%= e.away_team %></td>
-                    <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900"><%= e.choice %></td>
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600"><%= e.bet_count %></td>
+                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
+                    <td class="p-3 border-r border-slate-200 font-bold text-blue-950">{{ e.home_team }} vs {{ e.away_team }}</td>
+                    <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900">{{ e.choice }}</td>
+                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600">{{ e.bet_count }}</td>
                     <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-rose-700 text-base">
-                      <%= Number(e.total_staked).toLocaleString() %>
+                      {{ e.total_staked | money }}
                     </td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-500"><%= Number(breakLimit).toLocaleString() %></td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-500">{{ break_limit | money }}</td>
                     <td class="p-3 text-right font-mono font-black text-base">
-                      <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+<%= Number(e.excess).toLocaleString() %></span>
+                      <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+{{ e.excess | money }}</span>
                     </td>
                   </tr>
-                <% }) %>
-              <% } %>
+                {% endfor %}
+              {% endif %}
             </tbody>
           </table>
         </div>

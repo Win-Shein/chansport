@@ -20,17 +20,17 @@
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 
   <!-- Include Sidebar -->
-  <%- include('partials/sidebar') %>
+  {% include "partials/sidebar.html" %}
 
   <!-- Main Content Area -->
   <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-    
+
     <!-- Top Subheader -->
     <div class="bg-white border-b border-slate-300 px-5 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm text-sm">
       <div class="flex items-center space-x-3">
         <span class="font-bold text-slate-800 uppercase tracking-wide">Match Result Management</span>
         <span class="text-slate-300">|</span>
-        <span class="text-slate-600">Total Matches: <strong class="text-blue-700 font-bold"><%= matches.length %></strong></span>
+        <span class="text-slate-600">Total Matches: <strong class="text-blue-700 font-bold">{{ matches | length }}</strong></span>
       </div>
       <a href="/admin/match-list" class="text-xs text-slate-600 hover:text-blue-700 font-bold flex items-center space-x-1">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -39,32 +39,32 @@
     </div>
 
     <div class="p-4 sm:p-5 space-y-4">
-      
+
       <!-- Date Search Filter Bar -->
       <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <form action="/admin/result" method="GET" class="flex items-center space-x-2">
           <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
             <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-            <span><%= showAll ? 'Filter by Date:' : 'Showing (business day):' %></span>
+            <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
           </label>
           <input
             type="date"
             name="filter_date"
-            value="<%= filter_date %>"
+            value="{{ filter_date }}"
             class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
           >
           <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
             Search
           </button>
-          <% if (!showAll) { %>
+          {% if not show_all %}
             <a href="/admin/result?filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
               Show All
             </a>
-          <% } else { %>
+          {% else %}
             <a href="/admin/result" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
               Today
             </a>
-          <% } %>
+          {% endif %}
         </form>
 
         <div class="text-xs text-slate-500 italic">
@@ -75,7 +75,7 @@
       <!-- Table Container -->
       <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
         <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-          <span><%= filter_date ? `Match Results for Date: ${filter_date}` : 'Match Results' %></span>
+          <span>{% if filter_date %}Match Results for Date: {{ filter_date }}{% else %}Match Results{% endif %}</span>
         </div>
 
         <div class="overflow-x-auto">
@@ -83,86 +83,80 @@
             <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
               <tr>
                 <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                <th class="p-3 border-r border-slate-300">Date & Time</th>
+                <th class="p-3 border-r border-slate-300">Date &amp; Time</th>
                 <th class="p-3 border-r border-slate-300">Match Teams</th>
                 <th class="p-3 border-r border-slate-300 text-center">Final Score</th>
                 <th class="p-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <% if (matches.length === 0) { %>
+              {% if matches | length == 0 %}
                 <tr>
                   <td colspan="5" class="p-6 text-center text-slate-500 font-medium">
-                    No matches found <%= filter_date ? 'for this selected date' : '' %>.
+                    No matches found {% if filter_date %}for this selected date{% endif %}.
                   </td>
                 </tr>
-              <% } else { %>
-                <% matches.forEach((m, index) => { %>
-                  <% 
-                    const matchDateObj = new Date(m.match_time);
-                    const formattedDate = matchDateObj.toLocaleDateString();
-                    const formattedTime = matchDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const hasScore = (m.home_score !== null && m.away_score !== null);
-                  %>
-                  <tr class="<%= hasScore ? 'bg-slate-50/70 hover:bg-amber-50/50' : 'hover:bg-amber-50/80 bg-white' %> transition">
+              {% else %}
+                {% for m in matches %}
+                  <tr class="{% if m.has_score %}bg-slate-50/70 hover:bg-amber-50/50{% else %}hover:bg-amber-50/80 bg-white{% endif %} transition">
                     <!-- Serial No -->
                     <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">
-                      <%= index + 1 %>
+                      {{ loop.index }}
                     </td>
 
                     <!-- Match Date & Time -->
                     <td class="p-3 border-r border-slate-200 whitespace-nowrap">
-                      <div class="font-bold text-slate-800"><%= formattedDate %></div>
-                      <div class="text-xs text-slate-500 font-mono"><%= formattedTime %></div>
+                      <div class="font-bold text-slate-800">{{ m.date_display }}</div>
+                      <div class="text-xs text-slate-500 font-mono">{{ m.time_display }}</div>
                     </td>
 
                     <!-- Teams -->
                     <td class="p-3 border-r border-slate-200">
                       <div class="font-bold text-blue-950 text-base">
-                        <span><%= m.home_team %></span>
+                        <span>{{ m.home_team }}</span>
                         <span class="text-xs font-normal text-slate-400 mx-1">vs</span>
-                        <span><%= m.away_team %></span>
+                        <span>{{ m.away_team }}</span>
                       </div>
                     </td>
 
                     <!-- Score Result -->
                     <td class="p-3 border-r border-slate-200 text-center font-mono font-black text-base">
-                      <% if (hasScore) { %>
+                      {% if m.has_score %}
                         <span class="px-3 py-1 bg-[#0f3460] text-amber-300 rounded shadow-sm">
-                          <%= m.home_score %> - <%= m.away_score %>
+                          {{ m.home_score }} - {{ m.away_score }}
                         </span>
-                      <% } else { %>
+                      {% else %}
                         <span class="text-slate-400 text-xs font-bold italic">- Pending -</span>
-                      <% } %>
+                      {% endif %}
                     </td>
 
                     <!-- Actions -->
                     <td class="p-3 text-center whitespace-nowrap">
-                      <% if (hasScore) { %>
+                      {% if m.has_score %}
                         <!-- Edit Result Button -->
-                        <button 
-                          type="button" 
-                          onclick='openResultModal(<%= JSON.stringify(m) %>)'
+                        <button
+                          type="button"
+                          onclick='openResultModal({{ m | json }})'
                           class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-xs inline-flex items-center space-x-1 transition shadow-sm"
                         >
                           <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                           <span>Edit Result</span>
                         </button>
-                      <% } else { %>
+                      {% else %}
                         <!-- Enter Result Button -->
-                        <button 
-                          type="button" 
-                          onclick='openResultModal(<%= JSON.stringify(m) %>)'
+                        <button
+                          type="button"
+                          onclick='openResultModal({{ m | json }})'
                           class="px-3 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs inline-flex items-center space-x-1 transition shadow-sm"
                         >
                           <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                           <span>Enter Score</span>
                         </button>
-                      <% } %>
+                      {% endif %}
                     </td>
                   </tr>
-                <% }) %>
-              <% } %>
+                {% endfor %}
+              {% endif %}
             </tbody>
           </table>
         </div>

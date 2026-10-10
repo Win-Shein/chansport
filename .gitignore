@@ -1,14 +1,18 @@
-# Dependencies
-node_modules/
+# Rust build output
+/target
 
 # Environment variables (CRITICAL: never commit secrets)
 .env
 .env.*
 !.env.example
 
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
 # Logs
 *.log
-npm-debug.log*
 
 # OS / Editor files
 .DS_Store

@@ -20,19 +20,19 @@
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 
   <!-- Include Sidebar -->
-  <%- include('partials/sidebar') %>
+  {% include "partials/sidebar.html" %}
 
   <!-- Main Content Area -->
   <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-    
+
     <!-- Top Subheader -->
     <div class="bg-white border-b border-slate-300 px-5 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm text-sm">
       <div class="flex items-center space-x-3">
         <span class="font-bold text-slate-800 uppercase tracking-wide">Member Management</span>
         <span class="text-slate-300">|</span>
-        <span class="text-slate-600">Total Members: <strong class="text-blue-700 font-bold"><%= members.length %></strong></span>
+        <span class="text-slate-600">Total Members: <strong class="text-blue-700 font-bold">{{ members | length }}</strong></span>
         <span class="text-slate-300">|</span>
-        <span class="text-slate-600">Total Pool: <strong class="text-emerald-700 font-mono font-bold"><%= Number(totalPool).toLocaleString() %> MMK</strong></span>
+        <span class="text-slate-600">Total Pool: <strong class="text-emerald-700 font-mono font-bold">{{ total_pool | money }} MMK</strong></span>
       </div>
       <button onclick="openCreateModal()" class="px-4 py-2 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition flex items-center space-x-1.5 shadow">
         <i data-lucide="user-plus" class="w-4 h-4"></i>
@@ -41,7 +41,7 @@
     </div>
 
     <div class="p-4 sm:p-5 space-y-4">
-      
+
       <!-- Members Table Container -->
       <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
         <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
@@ -63,21 +63,21 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <% if (members.length === 0) { %>
+              {% if members | length == 0 %}
                 <tr>
                   <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No members found. Click "Create Member" to add one.</td>
                 </tr>
-              <% } else { %>
-                <% members.forEach((m, index) => { %>
+              {% else %}
+                {% for m in members %}
                   <tr class="hover:bg-amber-50/60 transition">
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= index + 1 %></td>
-                    <td class="p-3 border-r border-slate-200 font-bold text-slate-800"><%= m.username %></td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 text-base"><%= Number(m.balance).toLocaleString() %> MMK</td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-amber-900 bg-amber-50/40 text-base"><%= Number(m.bet_limit || 100000).toLocaleString() %> MMK</td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800"><%= m.commission %>%</td>
+                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
+                    <td class="p-3 border-r border-slate-200 font-bold text-slate-800">{{ m.username }}</td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 text-base">{{ m.balance | money }} MMK</td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-amber-900 bg-amber-50/40 text-base">{{ m.bet_limit | money }} MMK</td>
+                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800">{{ m.commission }}%</td>
                     <td class="p-3 border-r border-slate-200 text-center">
-                      <span class="px-2.5 py-0.5 rounded text-xs font-bold <%= m.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' %>">
-                        <%= m.status %>
+                      <span class="px-2.5 py-0.5 rounded text-xs font-bold {% if m.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800{% else %}bg-rose-100 text-rose-800{% endif %}">
+                        {{ m.status }}
                       </span>
                     </td>
                     <td class="p-3 text-center whitespace-nowrap">
@@ -85,7 +85,7 @@
                         <!-- Deposit Button -->
                         <button
                           type="button"
-                          onclick="openCreditModal('DEPOSIT', <%= m.id %>, '<%= m.username %>', <%= m.balance %>)"
+                          onclick="openCreditModal('DEPOSIT', {{ m.id }}, '{{ m.username }}', {{ m.balance }})"
                           class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
                         >
                           <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
@@ -95,7 +95,7 @@
                         <!-- Withdraw Button -->
                         <button
                           type="button"
-                          onclick="openCreditModal('WITHDRAW', <%= m.id %>, '<%= m.username %>', <%= m.balance %>)"
+                          onclick="openCreditModal('WITHDRAW', {{ m.id }}, '{{ m.username }}', {{ m.balance }})"
                           class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
                         >
                           <i data-lucide="minus-circle" class="w-3.5 h-3.5"></i>
@@ -105,7 +105,7 @@
                         <!-- Edit Button -->
                         <button
                           type="button"
-                          onclick='openEditModal(<%= JSON.stringify(m) %>)'
+                          onclick='openEditModal({{ m | json }})'
                           class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
                         >
                           <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
@@ -113,19 +113,19 @@
                         </button>
 
                         <!-- Toggle Status Button -->
-                        <form action="/admin/toggle-status-member/<%= m.id %>" method="POST" class="inline">
-                          <button 
-                            type="submit" 
-                            class="px-2.5 py-1 <%= m.status === 'ACTIVE' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700' %> text-white rounded text-xs font-bold transition shadow-sm"
+                        <form action="/admin/toggle-status-member/{{ m.id }}" method="POST" class="inline">
+                          <button
+                            type="submit"
+                            class="px-2.5 py-1 {% if m.status == 'ACTIVE' %}bg-amber-600 hover:bg-amber-700{% else %}bg-emerald-600 hover:bg-emerald-700{% endif %} text-white rounded text-xs font-bold transition shadow-sm"
                           >
-                            <%= m.status === 'ACTIVE' ? 'Suspend' : 'Activate' %>
+                            {% if m.status == 'ACTIVE' %}Suspend{% else %}Activate{% endif %}
                           </button>
                         </form>
 
                         <!-- Delete Button -->
-                        <form action="/admin/delete-member/<%= m.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this member? All bet histories will be removed.');" class="inline">
-                          <button 
-                            type="submit" 
+                        <form action="/admin/delete-member/{{ m.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this member? All bet histories will be removed.');" class="inline">
+                          <button
+                            type="submit"
                             class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold flex items-center space-x-1 transition shadow-sm"
                           >
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -135,8 +135,8 @@
                       </div>
                     </td>
                   </tr>
-                <% }) %>
-              <% } %>
+                {% endfor %}
+              {% endif %}
             </tbody>
           </table>
         </div>

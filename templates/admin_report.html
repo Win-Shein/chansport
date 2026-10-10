@@ -20,24 +20,24 @@
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 
   <!-- Include Sidebar -->
-  <%- include('partials/sidebar') %>
+  {% include "partials/sidebar.html" %}
 
   <!-- Main Content Wrapper -->
   <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-    
+
     <!-- Top Subheader -->
     <div class="bg-white border-b border-slate-300 px-5 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm text-sm">
       <div class="flex items-center space-x-3">
         <span class="font-bold text-slate-800 uppercase tracking-wide">Financial & Betting Reports</span>
         <span class="text-slate-300">|</span>
         <span class="text-slate-600">
-          <% if (subTab === 'credit') { %>
-            Total Members: <strong class="text-blue-700 font-bold"><%= creditMembers.length %></strong>
-          <% } else if (subTab === 'outstanding') { %>
-            Active Slips: <strong class="text-blue-700 font-bold"><%= outstandingBets.length %></strong>
-          <% } else { %>
-            Reported Users: <strong class="text-blue-700 font-bold"><%= winLoseList.length %></strong>
-          <% } %>
+          {% if sub_tab == 'credit' %}
+            Total Members: <strong class="text-blue-700 font-bold">{{ credit_members | length }}</strong>
+          {% elif sub_tab == 'outstanding' %}
+            Active Slips: <strong class="text-blue-700 font-bold">{{ outstanding_bets | length }}</strong>
+          {% else %}
+            Reported Users: <strong class="text-blue-700 font-bold">{{ win_lose_list | length }}</strong>
+          {% endif %}
         </span>
       </div>
 
@@ -50,58 +50,58 @@
     </div>
 
     <div class="p-4 sm:p-5 space-y-4">
-      
+
       <!-- Sub-Tab Navigation Bar -->
       <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm flex flex-wrap gap-2">
-        <a href="/admin/report?tab=credit" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 <%= subTab === 'credit' ? 'bg-[#0f3460] text-amber-300 shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' %>">
+        <a href="/admin/report?tab=credit" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'credit' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
           <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
           <span>Credit Log</span>
         </a>
-        <a href="/admin/report?tab=outstanding" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 <%= subTab === 'outstanding' ? 'bg-[#0f3460] text-amber-300 shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' %>">
+        <a href="/admin/report?tab=outstanding" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'outstanding' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
           <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-          <span>Outstanding (<%= outstandingBets.length %>)</span>
+          <span>Outstanding ({{ outstanding_bets | length }})</span>
         </a>
-        <a href="/admin/report?tab=winlose" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 <%= subTab === 'winlose' ? 'bg-[#0f3460] text-amber-300 shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' %>">
+        <a href="/admin/report?tab=winlose" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'winlose' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
           <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
           <span>Win / Lose Statement</span>
         </a>
       </div>
 
-      <!-- ================= 1. CREDIT LOG (Deposit / Withdraw History) ================= -->
-      <% if (subTab === 'credit') { %>
+      <!-- ================= 1. CREDIT LOG ================= -->
+      {% if sub_tab == 'credit' %}
         <!-- Date Search Filter Bar -->
         <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <form action="/admin/report" method="GET" class="flex items-center space-x-2">
             <input type="hidden" name="tab" value="credit">
             <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
               <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-              <span><%= showAll ? 'Filter by Date:' : 'Showing (business day):' %></span>
+              <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
             </label>
             <input
               type="date"
               name="filter_date"
-              value="<%= filter_date %>"
+              value="{{ filter_date }}"
               class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
             >
             <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
               Search
             </button>
-            <% if (!showAll) { %>
+            {% if not show_all %}
               <a href="/admin/report?tab=credit&filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
                 Show All
               </a>
-            <% } else { %>
+            {% else %}
               <a href="/admin/report?tab=credit" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
                 Today
               </a>
-            <% } %>
+            {% endif %}
           </form>
         </div>
 
         <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
           <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Member Credit Log <%= filter_date ? `(${filter_date})` : '' %></span>
-            <span class="text-xs font-normal text-slate-200">Total Accounts: <%= creditMembers.length %> &middot; Total Transactions: <%= creditLogs.length %></span>
+            <span>Member Credit Log {% if filter_date %}({{ filter_date }}){% endif %}</span>
+            <span class="text-xs font-normal text-slate-200">Total Accounts: {{ credit_members | length }} &middot; Total Transactions: {{ credit_logs | length }}</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -119,48 +119,48 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
-                <% if (creditMembers.length === 0) { %>
+                {% if credit_members | length == 0 %}
                   <tr>
                     <td colspan="8" class="p-6 text-center text-slate-500 font-medium">No members found.</td>
                   </tr>
-                <% } else { %>
-                  <% creditMembers.forEach((m, idx) => { %>
+                {% else %}
+                  {% for m in credit_members %}
                     <tr class="hover:bg-amber-50/60 transition">
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
+                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
                       <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
-                        <button type="button" onclick="showCreditLog(<%= m.id %>, '<%= m.username %>')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          <%= m.username %>
+                        <button type="button" onclick="showCreditLog({{ m.id }}, '{{ m.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
+                          {{ m.username }}
                         </button>
                       </td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800"><%= m.commission %>%</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-emerald-700 text-base"><%= Number(m.balance).toLocaleString() %> MMK</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 bg-emerald-50/40"><%= Number(m.total_deposit).toLocaleString() %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-amber-800 bg-amber-50/40"><%= Number(m.total_withdraw).toLocaleString() %></td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800">{{ m.commission }}%</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-emerald-700 text-base">{{ m.balance | money }} MMK</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 bg-emerald-50/40">{{ m.total_deposit | money }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-amber-800 bg-amber-50/40">{{ m.total_withdraw | money }}</td>
                       <td class="p-3 text-center">
-                        <span class="px-2.5 py-0.5 rounded text-xs font-bold <%= m.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' %>">
-                          <%= m.status %>
+                        <span class="px-2.5 py-0.5 rounded text-xs font-bold {% if m.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800{% else %}bg-rose-100 text-rose-800{% endif %}">
+                          {{ m.status }}
                         </span>
                       </td>
                       <td class="p-3 text-center">
-                        <button type="button" onclick="showCreditLog(<%= m.id %>, '<%= m.username %>')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
+                        <button type="button" onclick="showCreditLog({{ m.id }}, '{{ m.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
                           Details
                         </button>
                       </td>
                     </tr>
-                  <% }) %>
-                <% } %>
+                  {% endfor %}
+                {% endif %}
               </tbody>
             </table>
           </div>
         </div>
-      <% } %>
+      {% endif %}
 
-      <!-- ================= 2. OUTSTANDING RUNNING BETS (BY MEMBER) ================= -->
-      <% if (subTab === 'outstanding') { %>
+      <!-- ================= 2. OUTSTANDING RUNNING BETS ================= -->
+      {% if sub_tab == 'outstanding' %}
         <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
           <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
             <span>Outstanding Running Bets by Member</span>
-            <span class="text-xs font-normal text-slate-200">Pending Slips: <%= outstandingBets.length %></span>
+            <span class="text-xs font-normal text-slate-200">Pending Slips: {{ outstanding_bets | length }}</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -175,71 +175,71 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
-                <% if (outstandingByMember.length === 0) { %>
+                {% if outstanding_by_member | length == 0 %}
                   <tr>
                     <td colspan="5" class="p-6 text-center text-slate-500 font-medium">No outstanding running bets found.</td>
                   </tr>
-                <% } else { %>
-                  <% outstandingByMember.forEach((m, idx) => { %>
+                {% else %}
+                  {% for m in outstanding_by_member %}
                     <tr class="hover:bg-amber-50/60 transition">
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
+                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
                       <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
-                        <button type="button" onclick="showOutstandingBets(<%= m.user_id %>, '<%= m.username %>')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          <%= m.username %>
+                        <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
+                          {{ m.username }}
                         </button>
                       </td>
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600"><%= m.total_bets %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800 text-base"><%= Number(m.total_stake).toLocaleString() %> MMK</td>
+                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600">{{ m.total_bets }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800 text-base">{{ m.total_stake | money }} MMK</td>
                       <td class="p-3 text-center">
-                        <button type="button" onclick="showOutstandingBets(<%= m.user_id %>, '<%= m.username %>')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
+                        <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
                           Details
                         </button>
                       </td>
                     </tr>
-                  <% }) %>
-                <% } %>
+                  {% endfor %}
+                {% endif %}
               </tbody>
             </table>
           </div>
         </div>
-      <% } %>
+      {% endif %}
 
-      <!-- ================= 3. WIN / LOSE STATEMENT (WITH DETAIL MODAL TRIGGER) ================= -->
-      <% if (subTab === 'winlose') { %>
+      <!-- ================= 3. WIN / LOSE STATEMENT ================= -->
+      {% if sub_tab == 'winlose' %}
         <!-- Date Search Filter Bar -->
         <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <form action="/admin/report" method="GET" class="flex items-center space-x-2">
             <input type="hidden" name="tab" value="winlose">
             <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
               <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-              <span><%= showAll ? 'Filter by Date:' : 'Showing (business day):' %></span>
+              <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
             </label>
             <input
               type="date"
               name="filter_date"
-              value="<%= filter_date %>"
+              value="{{ filter_date }}"
               class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
             >
             <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
               Search
             </button>
-            <% if (!showAll) { %>
+            {% if not show_all %}
               <a href="/admin/report?tab=winlose&filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
                 Show All
               </a>
-            <% } else { %>
+            {% else %}
               <a href="/admin/report?tab=winlose" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
                 Today
               </a>
-            <% } %>
+            {% endif %}
           </form>
         </div>
 
         <!-- Win / Lose Table Container -->
         <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
           <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Member Win / Lose Statement <%= filter_date ? `(${filter_date})` : '' %></span>
-            <span class="text-xs font-normal text-slate-200">Total Members: <%= winLoseList.length %></span>
+            <span>Member Win / Lose Statement {% if filter_date %}({{ filter_date }}){% endif %}</span>
+            <span class="text-xs font-normal text-slate-200">Total Members: {{ win_lose_list | length }}</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -259,74 +259,60 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
-                <% if (winLoseList.length === 0) { %>
+                {% if win_lose_list | length == 0 %}
                   <tr>
-                    <td colspan="10" class="p-6 text-center text-slate-500 font-medium">No member records found <%= filter_date ? 'for this date' : '' %>.</td>
+                    <td colspan="10" class="p-6 text-center text-slate-500 font-medium">No member records found {% if filter_date %}for this date{% endif %}.</td>
                   </tr>
-                <% } else { %>
-                  <% 
-                    let grandTurnover = 0;
-                    let grandValid = 0;
-                    let grandPayout = 0;
-                    let grandComm = 0;
-                    let grandMemberNet = 0;
-                  %>
-                  <% winLoseList.forEach((r, idx) => { %>
-                    <%
-                      const netWinLose = Number(r.payout || 0) - Number(r.turnover || 0);
-                      grandTurnover += Number(r.turnover || 0);
-                      grandValid += Number(r.valid_amount || 0);
-                      grandPayout += netWinLose;
-                      grandComm += Number(r.comm_amount || 0);
-                      grandMemberNet += Number(r.member_net || 0);
-                    %>
+                {% else %}
+                  {% for r in win_lose_list %}
+                    {% set net_win_lose = r.payout - r.turnover %}
                     <tr class="hover:bg-amber-50/60 transition font-mono">
-                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-500 text-xs"><%= idx + 1 %></td>
+                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">{{ loop.index }}</td>
                       <td class="p-3 border-r border-slate-200 font-sans font-bold text-slate-800">
-                        <button type="button" onclick="showMemberBets(<%= r.user_id %>, '<%= r.username %>')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          <%= r.username %>
+                        <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
+                          {{ r.username }}
                         </button>
                       </td>
-                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-600"><%= r.total_bets %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-800"><%= Number(r.turnover).toLocaleString() %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-black text-amber-900 bg-amber-50/50"><%= Number(r.valid_amount).toLocaleString() %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold <%= netWinLose >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
-                        <%= netWinLose >= 0 ? '+' : '' %><%= Number(netWinLose).toLocaleString() %>
+                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-600">{{ r.total_bets }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-800">{{ r.turnover | money }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-black text-amber-900 bg-amber-50/50">{{ r.valid_amount | money }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-bold {% if net_win_lose >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">
+                        {% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }}
                       </td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-600"><%= Number(r.comm_rate) %>%</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-purple-800"><%= Number(r.comm_amount).toLocaleString() %></td>
-                      <td class="p-3 border-r border-slate-200 text-right font-black text-base <%= r.member_net >= 0 ? 'text-emerald-700' : 'text-rose-600' %>">
-                        <%= r.member_net >= 0 ? '+' : '' %><%= Number(r.member_net).toLocaleString() %>
+                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-600">{{ r.comm_rate }}%</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-bold text-purple-800">{{ r.comm_amount | money }}</td>
+                      <td class="p-3 border-r border-slate-200 text-right font-black text-base {% if r.member_net >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">
+                        {% if r.member_net >= 0 %}+{% endif %}{{ r.member_net | money }}
                       </td>
                       <td class="p-3 text-center">
-                        <button type="button" onclick="showMemberBets(<%= r.user_id %>, '<%= r.username %>')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold font-sans transition">
+                        <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold font-sans transition">
                           Details
                         </button>
                       </td>
                     </tr>
-                  <% }) %>
+                  {% endfor %}
 
                   <!-- Grand Total Row -->
                   <tr class="bg-slate-200 font-mono font-black border-t-2 border-slate-300">
                     <td colspan="3" class="p-3 text-center font-sans uppercase text-slate-800 border-r border-slate-300">Total</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-slate-900"><%= Number(grandTurnover).toLocaleString() %></td>
-                    <td class="p-3 text-right border-r border-slate-300 text-amber-950 bg-amber-100"><%= Number(grandValid).toLocaleString() %></td>
-                    <td class="p-3 text-right border-r border-slate-300 <%= grandPayout >= 0 ? 'text-emerald-800' : 'text-rose-700' %>">
-                      <%= grandPayout >= 0 ? '+' : '' %><%= Number(grandPayout).toLocaleString() %>
+                    <td class="p-3 text-right border-r border-slate-300 text-slate-900">{{ grand_turnover | money }}</td>
+                    <td class="p-3 text-right border-r border-slate-300 text-amber-950 bg-amber-100">{{ grand_valid | money }}</td>
+                    <td class="p-3 text-right border-r border-slate-300 {% if grand_payout >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">
+                      {% if grand_payout >= 0 %}+{% endif %}{{ grand_payout | money }}
                     </td>
                     <td class="p-3 text-right border-r border-slate-300 text-slate-600">-</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-purple-950"><%= Number(grandComm).toLocaleString() %></td>
-                    <td class="p-3 text-right border-r border-slate-300 text-base <%= grandMemberNet >= 0 ? 'text-emerald-800' : 'text-rose-700' %>">
-                      <%= grandMemberNet >= 0 ? '+' : '' %><%= Number(grandMemberNet).toLocaleString() %> MMK
+                    <td class="p-3 text-right border-r border-slate-300 text-purple-950">{{ grand_comm | money }}</td>
+                    <td class="p-3 text-right border-r border-slate-300 text-base {% if grand_member_net >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">
+                      {% if grand_member_net >= 0 %}+{% endif %}{{ grand_member_net | money }} MMK
                     </td>
                     <td class="p-3 text-center">-</td>
                   </tr>
-                <% } %>
+                {% endif %}
               </tbody>
             </table>
           </div>
         </div>
-      <% } %>
+      {% endif %}
 
     </div>
   </main>
@@ -334,7 +320,7 @@
   <!-- ================= MEMBER BET DETAILS MODAL ================= -->
   <div id="memberBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
-      
+
       <!-- Modal Header -->
       <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
         <span class="flex items-center space-x-2">
@@ -346,7 +332,7 @@
         </button>
       </div>
 
-      <!-- Modal Content (Table of Slips) -->
+      <!-- Modal Content -->
       <div class="p-4 overflow-y-auto flex-1">
         <table class="w-full text-left text-sm border-collapse">
           <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
@@ -362,7 +348,6 @@
             </tr>
           </thead>
           <tbody id="memberBetsListBody" class="divide-y divide-slate-200 font-mono">
-            <!-- Dynamically Populated by JavaScript -->
           </tbody>
         </table>
       </div>
@@ -393,7 +378,7 @@
         </button>
       </div>
 
-      <!-- Modal Content (Table of Slips) -->
+      <!-- Modal Content -->
       <div class="p-4 overflow-y-auto flex-1">
         <table class="w-full text-left text-sm border-collapse">
           <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
@@ -407,7 +392,6 @@
             </tr>
           </thead>
           <tbody id="outstandingBetsListBody" class="divide-y divide-slate-200 font-mono">
-            <!-- Dynamically Populated by JavaScript -->
           </tbody>
         </table>
       </div>
@@ -438,7 +422,7 @@
         </button>
       </div>
 
-      <!-- Modal Content (Timestamped Transaction List) -->
+      <!-- Modal Content -->
       <div class="p-4 overflow-y-auto flex-1">
         <table class="w-full text-left text-sm border-collapse">
           <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
@@ -453,7 +437,6 @@
             </tr>
           </thead>
           <tbody id="creditLogListBody" class="divide-y divide-slate-200 font-mono">
-            <!-- Dynamically Populated by JavaScript -->
           </tbody>
         </table>
       </div>
@@ -473,10 +456,10 @@
     lucide.createIcons();
 
     // Store All Settled Bets passed from Backend
-    const allSettledBets = <%- JSON.stringify(typeof allSettledBets !== 'undefined' ? allSettledBets : []) %>;
+    const allSettledBets = {{ all_settled_bets | json }};
 
     // Store All Outstanding (PENDING) Bets passed from Backend
-    const allOutstandingBets = <%- JSON.stringify(typeof outstandingBets !== 'undefined' ? outstandingBets : []) %>;
+    const allOutstandingBets = {{ outstanding_bets | json }};
 
     function showOutstandingBets(userId, username) {
       document.getElementById('outstandingModalMemberName').textContent = username;
@@ -514,7 +497,7 @@
     }
 
     // Store All Credit Log (Deposit/Withdraw) entries passed from Backend
-    const allCreditLogs = <%- JSON.stringify(typeof creditLogs !== 'undefined' ? creditLogs : []) %>;
+    const allCreditLogs = {{ credit_logs | json }};
 
     function showCreditLog(userId, username) {
       document.getElementById('creditLogModalMemberName').textContent = username;
@@ -532,7 +515,7 @@
           const badgeClass = isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
           const amountClass = isDeposit ? 'text-emerald-700' : 'text-amber-800';
           const amountSign = isDeposit ? '+' : '-';
-          const dateStr = new Date(l.created_at).toLocaleString();
+          const dateStr = new Date(l.created_at.replace(' ', 'T')).toLocaleString();
 
           const row = document.createElement('tr');
           row.className = 'hover:bg-amber-50/60 transition';
