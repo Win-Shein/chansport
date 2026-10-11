@@ -68,32 +68,6 @@ pub struct UserSettledBet {
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct CreditLog {
-    pub id: i64,
-    pub user_id: i64,
-    pub log_type: String,
-    pub amount: f64,
-    pub balance_after: f64,
-    pub note: Option<String>,
-    pub admin_username: Option<String>,
-    pub created_at: String,
-}
-
-/// Credit log joined with the owning member's username.
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct CreditLogWithUser {
-    pub id: i64,
-    pub user_id: i64,
-    pub log_type: String,
-    pub amount: f64,
-    pub balance_after: f64,
-    pub note: Option<String>,
-    pub admin_username: Option<String>,
-    pub created_at: String,
-    pub username: String,
-}
-
 /// Outstanding (PENDING) bet on an open/live match, with owner + match info.
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct OutstandingBet {

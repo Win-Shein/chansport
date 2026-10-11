@@ -1,5 +1,7 @@
 pub mod admin;
 pub mod auth;
+pub mod fixtures;
+pub mod home;
 pub mod member;
 
 use axum::http::StatusCode;
@@ -25,6 +27,15 @@ pub fn js_num(v: &Value, k: &str) -> f64 {
         Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0),
         Some(Value::String(s)) => s.trim().parse().unwrap_or(0.0),
         _ => 0.0,
+    }
+}
+
+/// Read an integer id from a JSON value that may be a number or a string.
+pub fn js_id(v: &Value, k: &str) -> i64 {
+    match v.get(k) {
+        Some(Value::Number(n)) => n.as_i64().unwrap_or(0),
+        Some(Value::String(s)) => s.trim().parse::<i64>().unwrap_or(0),
+        _ => 0,
     }
 }
 

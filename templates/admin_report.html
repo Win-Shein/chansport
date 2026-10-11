@@ -3,598 +3,232 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reports - MYANBET365</title>
+  <title>Report - Chan Sport</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-[#f0f2f5] text-slate-800 font-sans min-h-screen flex flex-col md:flex-row antialiased text-sm">
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
 
-  <!-- Mobile Header -->
-  <header class="md:hidden bg-[#0f3460] text-white px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow">
-    <span class="font-black text-amber-400 tracking-wider text-lg">MYANBET<span class="text-white">365</span></span>
-    <button id="mobileMenuBtn" class="p-1.5 text-slate-200 hover:text-white">
-      <i data-lucide="menu" class="w-6 h-6"></i>
-    </button>
-  </header>
+  {% include "partials/header.html" %}
+  {% include "partials/admin_tabs.html" %}
 
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-4">
 
-  <!-- Include Sidebar -->
-  {% include "partials/sidebar.html" %}
+    <!-- Sub tabs -->
+    <div class="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-2 gap-1">
+      <a href="/admin/report?tab=outstanding" class="py-2.5 rounded-lg text-center text-xs font-bold flex items-center justify-center space-x-1.5 {% if sub_tab == 'outstanding' %}bg-[#0b2545] text-amber-300{% else %}text-slate-600{% endif %}">
+        <i data-lucide="clock" class="w-4 h-4"></i><span>Outstanding ({{ outstanding_bets | length }})</span>
+      </a>
+      <a href="/admin/report?tab=winlose" class="py-2.5 rounded-lg text-center text-xs font-bold flex items-center justify-center space-x-1.5 {% if sub_tab == 'winlose' %}bg-[#0b2545] text-amber-300{% else %}text-slate-600{% endif %}">
+        <i data-lucide="trending-up" class="w-4 h-4"></i><span>Win / Lose</span>
+      </a>
+    </div>
 
-  <!-- Main Content Wrapper -->
-  <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
+    <!-- ============ OUTSTANDING ============ -->
+    {% if sub_tab == 'outstanding' %}
+      {% if outstanding_by_member | length == 0 %}
+        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-medium">No outstanding running bets.</div>
+      {% else %}
+        <div class="space-y-2.5">
+          {% for m in outstanding_by_member %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
+              <div class="flex justify-between items-center">
+                <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="font-bold text-blue-700 text-base underline">{{ m.username }}</button>
+                <span class="font-mono font-black text-slate-800">{{ m.total_stake | money }} MMK</span>
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5">Pending slips: <span class="font-mono font-bold text-slate-700">{{ m.total_bets }}</span></div>
+              <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="mt-2.5 w-full py-2.5 rounded-lg bg-[#0b2545] text-amber-300 font-bold text-xs">View Slips</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endif %}
 
-    <!-- Top Subheader -->
-    <div class="bg-white border-b border-slate-300 px-5 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm text-sm">
-      <div class="flex items-center space-x-3">
-        <span class="font-bold text-slate-800 uppercase tracking-wide">Financial & Betting Reports</span>
-        <span class="text-slate-300">|</span>
-        <span class="text-slate-600">
-          {% if sub_tab == 'credit' %}
-            Total Members: <strong class="text-blue-700 font-bold">{{ credit_members | length }}</strong>
-          {% elif sub_tab == 'outstanding' %}
-            Active Slips: <strong class="text-blue-700 font-bold">{{ outstanding_bets | length }}</strong>
+    <!-- ============ WIN / LOSE ============ -->
+    {% if sub_tab == 'winlose' %}
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        <form action="/admin/report" method="GET" class="flex flex-wrap items-center gap-2">
+          <input type="hidden" name="tab" value="winlose">
+          <input type="date" name="filter_date" value="{{ filter_date }}" class="px-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-semibold">
+          <button type="submit" class="px-3 py-2 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs">Search</button>
+          {% if not show_all %}
+            <a href="/admin/report?tab=winlose&filter_date=all" class="px-3 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">All</a>
           {% else %}
-            Reported Users: <strong class="text-blue-700 font-bold">{{ win_lose_list | length }}</strong>
+            <a href="/admin/report?tab=winlose" class="px-3 py-2 bg-amber-100 text-amber-800 font-bold rounded-lg text-xs">Today</a>
           {% endif %}
-        </span>
+        </form>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <button onclick="window.location.reload()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded text-xs transition flex items-center space-x-1 border border-slate-300">
-          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-          <span>Refresh</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="p-4 sm:p-5 space-y-4">
-
-      <!-- Sub-Tab Navigation Bar -->
-      <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm flex flex-wrap gap-2">
-        <a href="/admin/report?tab=credit" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'credit' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
-          <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
-          <span>Credit Log</span>
-        </a>
-        <a href="/admin/report?tab=outstanding" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'outstanding' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
-          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-          <span>Outstanding ({{ outstanding_bets | length }})</span>
-        </a>
-        <a href="/admin/report?tab=winlose" class="px-4 py-2 rounded text-xs font-bold transition flex items-center space-x-1.5 {% if sub_tab == 'winlose' %}bg-[#0f3460] text-amber-300 shadow{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
-          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
-          <span>Win / Lose Statement</span>
-        </a>
-      </div>
-
-      <!-- ================= 1. CREDIT LOG ================= -->
-      {% if sub_tab == 'credit' %}
-        <!-- Date Search Filter Bar -->
-        <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <form action="/admin/report" method="GET" class="flex items-center space-x-2">
-            <input type="hidden" name="tab" value="credit">
-            <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
-              <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-              <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
-            </label>
-            <input
-              type="date"
-              name="filter_date"
-              value="{{ filter_date }}"
-              class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
-            >
-            <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
-              Search
-            </button>
-            {% if not show_all %}
-              <a href="/admin/report?tab=credit&filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
-                Show All
-              </a>
-            {% else %}
-              <a href="/admin/report?tab=credit" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
-                Today
-              </a>
-            {% endif %}
-          </form>
+      {% if win_lose_list | length == 0 %}
+        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-medium">No member records found.</div>
+      {% else %}
+        <!-- Grand total -->
+        <div class="bg-[#0b2545] text-white rounded-2xl p-3.5">
+          <div class="text-[11px] font-bold uppercase text-slate-300 mb-2">Grand Total</div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex justify-between"><span class="text-slate-400">Turnover</span><span class="font-mono font-bold">{{ grand_turnover | money }}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Valid</span><span class="font-mono font-bold text-amber-300">{{ grand_valid | money }}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">W/L</span><span class="font-mono font-bold {% if grand_payout >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">{% if grand_payout >= 0 %}+{% endif %}{{ grand_payout | money }}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Comm</span><span class="font-mono font-bold text-purple-300">{{ grand_comm | money }}</span></div>
+          </div>
+          <div class="flex justify-between mt-2 pt-2 border-t border-blue-800/60 text-sm">
+            <span class="text-slate-300 font-bold">Member Net</span>
+            <span class="font-mono font-black {% if grand_member_net >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">{% if grand_member_net >= 0 %}+{% endif %}{{ grand_member_net | money }} MMK</span>
+          </div>
         </div>
 
-        <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
-          <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Member Credit Log {% if filter_date %}({{ filter_date }}){% endif %}</span>
-            <span class="text-xs font-normal text-slate-200">Total Accounts: {{ credit_members | length }} &middot; Total Transactions: {{ credit_logs | length }}</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm border-collapse">
-              <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
-                <tr>
-                  <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                  <th class="p-3 border-r border-slate-300">Username</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Commission (%)</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Credit Balance</th>
-                  <th class="p-3 border-r border-slate-300 text-right bg-emerald-50 text-emerald-900">Deposited</th>
-                  <th class="p-3 border-r border-slate-300 text-right bg-amber-50 text-amber-900">Withdrawn</th>
-                  <th class="p-3 border-r border-slate-300 text-center w-28">Status</th>
-                  <th class="p-3 text-center w-24">Action</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200">
-                {% if credit_members | length == 0 %}
-                  <tr>
-                    <td colspan="8" class="p-6 text-center text-slate-500 font-medium">No members found.</td>
-                  </tr>
-                {% else %}
-                  {% for m in credit_members %}
-                    <tr class="hover:bg-amber-50/60 transition">
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
-                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
-                        <button type="button" onclick="showCreditLog({{ m.id }}, '{{ m.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          {{ m.username }}
-                        </button>
-                      </td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-blue-800">{{ m.commission }}%</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-emerald-700 text-base">{{ m.balance | money }} MMK</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-emerald-700 bg-emerald-50/40">{{ m.total_deposit | money }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-amber-800 bg-amber-50/40">{{ m.total_withdraw | money }}</td>
-                      <td class="p-3 text-center">
-                        <span class="px-2.5 py-0.5 rounded text-xs font-bold {% if m.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800{% else %}bg-rose-100 text-rose-800{% endif %}">
-                          {{ m.status }}
-                        </span>
-                      </td>
-                      <td class="p-3 text-center">
-                        <button type="button" onclick="showCreditLog({{ m.id }}, '{{ m.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
+        <div class="space-y-2.5">
+          {% for r in win_lose_list %}
+            {% set net_win_lose = r.payout - r.turnover %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
+              <div class="flex justify-between items-center">
+                <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="font-bold text-blue-700 text-base underline">{{ r.username }}</button>
+                <span class="text-[11px] text-slate-500">Bets: <span class="font-mono font-bold">{{ r.total_bets }}</span></span>
+              </div>
+              <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div class="flex justify-between"><span class="text-slate-400">Turnover</span><span class="font-mono font-bold">{{ r.turnover | money }}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Valid</span><span class="font-mono font-bold text-amber-800">{{ r.valid_amount | money }}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">W/L</span><span class="font-mono font-bold {% if net_win_lose >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Comm {{ r.comm_rate }}%</span><span class="font-mono font-bold text-purple-800">{{ r.comm_amount | money }}</span></div>
+              </div>
+              <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
+                <span class="text-xs text-slate-500 font-bold">Member Net</span>
+                <span class="font-mono font-black {% if r.member_net >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{% if r.member_net >= 0 %}+{% endif %}{{ r.member_net | money }}</span>
+              </div>
+              <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="mt-2.5 w-full py-2.5 rounded-lg bg-[#0b2545] text-amber-300 font-bold text-xs">View Slips</button>
+            </div>
+          {% endfor %}
         </div>
       {% endif %}
-
-      <!-- ================= 2. OUTSTANDING RUNNING BETS ================= -->
-      {% if sub_tab == 'outstanding' %}
-        <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
-          <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Outstanding Running Bets by Member</span>
-            <span class="text-xs font-normal text-slate-200">Pending Slips: {{ outstanding_bets | length }}</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm border-collapse">
-              <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
-                <tr>
-                  <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                  <th class="p-3 border-r border-slate-300">Member</th>
-                  <th class="p-3 border-r border-slate-300 text-center w-32">Pending Slips</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Total Stake</th>
-                  <th class="p-3 text-center w-24">Action</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200">
-                {% if outstanding_by_member | length == 0 %}
-                  <tr>
-                    <td colspan="5" class="p-6 text-center text-slate-500 font-medium">No outstanding running bets found.</td>
-                  </tr>
-                {% else %}
-                  {% for m in outstanding_by_member %}
-                    <tr class="hover:bg-amber-50/60 transition">
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
-                      <td class="p-3 border-r border-slate-200 font-bold text-slate-800">
-                        <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          {{ m.username }}
-                        </button>
-                      </td>
-                      <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600">{{ m.total_bets }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800 text-base">{{ m.total_stake | money }} MMK</td>
-                      <td class="p-3 text-center">
-                        <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold transition">
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {% endif %}
-
-      <!-- ================= 3. WIN / LOSE STATEMENT ================= -->
-      {% if sub_tab == 'winlose' %}
-        <!-- Date Search Filter Bar -->
-        <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <form action="/admin/report" method="GET" class="flex items-center space-x-2">
-            <input type="hidden" name="tab" value="winlose">
-            <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
-              <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-              <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
-            </label>
-            <input
-              type="date"
-              name="filter_date"
-              value="{{ filter_date }}"
-              class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
-            >
-            <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
-              Search
-            </button>
-            {% if not show_all %}
-              <a href="/admin/report?tab=winlose&filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
-                Show All
-              </a>
-            {% else %}
-              <a href="/admin/report?tab=winlose" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
-                Today
-              </a>
-            {% endif %}
-          </form>
-        </div>
-
-        <!-- Win / Lose Table Container -->
-        <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
-          <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-            <span>Member Win / Lose Statement {% if filter_date %}({{ filter_date }}){% endif %}</span>
-            <span class="text-xs font-normal text-slate-200">Total Members: {{ win_lose_list | length }}</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm border-collapse">
-              <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
-                <tr>
-                  <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                  <th class="p-3 border-r border-slate-300">Member</th>
-                  <th class="p-3 border-r border-slate-300 text-center w-16">Bets</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Stake (Turnover)</th>
-                  <th class="p-3 border-r border-slate-300 text-right bg-amber-50 text-amber-950">Valid Amount</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Win / Lose (Net)</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Comm (%)</th>
-                  <th class="p-3 border-r border-slate-300 text-right">Comm Amount</th>
-                  <th class="p-3 text-right">Member Win / Lose</th>
-                  <th class="p-3 text-center w-24">Action</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200">
-                {% if win_lose_list | length == 0 %}
-                  <tr>
-                    <td colspan="10" class="p-6 text-center text-slate-500 font-medium">No member records found {% if filter_date %}for this date{% endif %}.</td>
-                  </tr>
-                {% else %}
-                  {% for r in win_lose_list %}
-                    {% set net_win_lose = r.payout - r.turnover %}
-                    <tr class="hover:bg-amber-50/60 transition font-mono">
-                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">{{ loop.index }}</td>
-                      <td class="p-3 border-r border-slate-200 font-sans font-bold text-slate-800">
-                        <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="text-blue-700 hover:text-blue-900 hover:underline text-left">
-                          {{ r.username }}
-                        </button>
-                      </td>
-                      <td class="p-3 border-r border-slate-200 text-center font-bold text-slate-600">{{ r.total_bets }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-800">{{ r.turnover | money }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-black text-amber-900 bg-amber-50/50">{{ r.valid_amount | money }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold {% if net_win_lose >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">
-                        {% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }}
-                      </td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-slate-600">{{ r.comm_rate }}%</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-bold text-purple-800">{{ r.comm_amount | money }}</td>
-                      <td class="p-3 border-r border-slate-200 text-right font-black text-base {% if r.member_net >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">
-                        {% if r.member_net >= 0 %}+{% endif %}{{ r.member_net | money }}
-                      </td>
-                      <td class="p-3 text-center">
-                        <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="px-2 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 rounded text-xs font-bold font-sans transition">
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  {% endfor %}
-
-                  <!-- Grand Total Row -->
-                  <tr class="bg-slate-200 font-mono font-black border-t-2 border-slate-300">
-                    <td colspan="3" class="p-3 text-center font-sans uppercase text-slate-800 border-r border-slate-300">Total</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-slate-900">{{ grand_turnover | money }}</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-amber-950 bg-amber-100">{{ grand_valid | money }}</td>
-                    <td class="p-3 text-right border-r border-slate-300 {% if grand_payout >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">
-                      {% if grand_payout >= 0 %}+{% endif %}{{ grand_payout | money }}
-                    </td>
-                    <td class="p-3 text-right border-r border-slate-300 text-slate-600">-</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-purple-950">{{ grand_comm | money }}</td>
-                    <td class="p-3 text-right border-r border-slate-300 text-base {% if grand_member_net >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">
-                      {% if grand_member_net >= 0 %}+{% endif %}{{ grand_member_net | money }} MMK
-                    </td>
-                    <td class="p-3 text-center">-</td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {% endif %}
-
-    </div>
+    {% endif %}
   </main>
 
-  <!-- ================= MEMBER BET DETAILS MODAL ================= -->
-  <div id="memberBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
-
-      <!-- Modal Header -->
-      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
-        <span class="flex items-center space-x-2">
-          <i data-lucide="list-ordered" class="w-4 h-4 text-amber-400"></i>
-          <span>Member Betting Details: <span id="modalMemberName" class="text-amber-300"></span></span>
-        </span>
-        <button onclick="closeMemberBetsModal()" class="text-slate-300 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+  <!-- MEMBER BET DETAILS MODAL -->
+  <div id="memberBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-3xl border border-slate-300 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="list-ordered" class="w-4 h-4 text-amber-400"></i><span>Slips: <span id="modalMemberName" class="text-amber-300"></span></span></span>
+        <button onclick="closeMemberBetsModal()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-
-      <!-- Modal Content -->
-      <div class="p-4 overflow-y-auto flex-1">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
+      <div class="p-3 overflow-y-auto flex-1">
+        <table class="w-full text-left text-[11px] border-collapse">
+          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 uppercase font-bold sticky top-0 text-[10px]">
             <tr>
-              <th class="p-2.5 border-r border-slate-300 text-center w-12">No.</th>
-              <th class="p-2.5 border-r border-slate-300">Match Teams</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Score</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Selection</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Odd</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Stake</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Win / Lose</th>
-              <th class="p-2.5 text-center">Result</th>
+              <th class="p-2 text-center w-8">No.</th>
+              <th class="p-2">Match</th>
+              <th class="p-2 text-center">Score</th>
+              <th class="p-2 text-center">Sel</th>
+              <th class="p-2 text-center">Odd</th>
+              <th class="p-2 text-right">Stake</th>
+              <th class="p-2 text-right">W/L</th>
+              <th class="p-2 text-center">Res</th>
             </tr>
           </thead>
-          <tbody id="memberBetsListBody" class="divide-y divide-slate-200 font-mono">
-          </tbody>
+          <tbody id="memberBetsListBody" class="divide-y divide-slate-200 font-mono"></tbody>
         </table>
       </div>
-
-      <!-- Modal Footer -->
       <div class="bg-slate-100 px-5 py-3 border-t border-slate-300 flex justify-between items-center text-xs">
         <span id="modalBetsCount" class="font-bold text-slate-600"></span>
-        <button type="button" onclick="closeMemberBetsModal()" class="px-4 py-1.5 bg-[#0f3460] text-amber-300 font-bold rounded transition">
-          Close
-        </button>
+        <button type="button" onclick="closeMemberBetsModal()" class="px-4 py-2 bg-[#0b2545] text-amber-300 font-bold rounded-lg">Close</button>
       </div>
-
     </div>
   </div>
 
-  <!-- ================= OUTSTANDING BET DETAILS MODAL ================= -->
-  <div id="outstandingBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
-
-      <!-- Modal Header -->
-      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
-        <span class="flex items-center space-x-2">
-          <i data-lucide="list-ordered" class="w-4 h-4 text-amber-400"></i>
-          <span>Outstanding Bets: <span id="outstandingModalMemberName" class="text-amber-300"></span></span>
-        </span>
-        <button onclick="closeOutstandingBetsModal()" class="text-slate-300 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+  <!-- OUTSTANDING DETAILS MODAL -->
+  <div id="outstandingBetsModal" class="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-3xl border border-slate-300 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="list-ordered" class="w-4 h-4 text-amber-400"></i><span>Outstanding: <span id="outstandingModalMemberName" class="text-amber-300"></span></span></span>
+        <button onclick="closeOutstandingBetsModal()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-
-      <!-- Modal Content -->
-      <div class="p-4 overflow-y-auto flex-1">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
+      <div class="p-3 overflow-y-auto flex-1">
+        <table class="w-full text-left text-[11px] border-collapse">
+          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 uppercase font-bold sticky top-0 text-[10px]">
             <tr>
-              <th class="p-2.5 border-r border-slate-300 text-center w-12">No.</th>
-              <th class="p-2.5 border-r border-slate-300">Match Teams</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Selection</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Odd</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Stake</th>
-              <th class="p-2.5 text-center">Status</th>
+              <th class="p-2 text-center w-8">No.</th>
+              <th class="p-2">Match</th>
+              <th class="p-2 text-center">Sel</th>
+              <th class="p-2 text-center">Odd</th>
+              <th class="p-2 text-right">Stake</th>
+              <th class="p-2 text-center">Status</th>
             </tr>
           </thead>
-          <tbody id="outstandingBetsListBody" class="divide-y divide-slate-200 font-mono">
-          </tbody>
+          <tbody id="outstandingBetsListBody" class="divide-y divide-slate-200 font-mono"></tbody>
         </table>
       </div>
-
-      <!-- Modal Footer -->
       <div class="bg-slate-100 px-5 py-3 border-t border-slate-300 flex justify-between items-center text-xs">
         <span id="outstandingModalBetsCount" class="font-bold text-slate-600"></span>
-        <button type="button" onclick="closeOutstandingBetsModal()" class="px-4 py-1.5 bg-[#0f3460] text-amber-300 font-bold rounded transition">
-          Close
-        </button>
+        <button type="button" onclick="closeOutstandingBetsModal()" class="px-4 py-2 bg-[#0b2545] text-amber-300 font-bold rounded-lg">Close</button>
       </div>
-
-    </div>
-  </div>
-
-  <!-- ================= CREDIT LOG DETAILS MODAL ================= -->
-  <div id="creditLogModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
-
-      <!-- Modal Header -->
-      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
-        <span class="flex items-center space-x-2">
-          <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
-          <span>Credit Log: <span id="creditLogModalMemberName" class="text-amber-300"></span></span>
-        </span>
-        <button onclick="closeCreditLogModal()" class="text-slate-300 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Modal Content -->
-      <div class="p-4 overflow-y-auto flex-1">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold sticky top-0">
-            <tr>
-              <th class="p-2.5 border-r border-slate-300 text-center w-12">No.</th>
-              <th class="p-2.5 border-r border-slate-300">Date &amp; Time</th>
-              <th class="p-2.5 border-r border-slate-300 text-center">Type</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Amount</th>
-              <th class="p-2.5 border-r border-slate-300 text-right">Balance After</th>
-              <th class="p-2.5 border-r border-slate-300">Note</th>
-              <th class="p-2.5 text-center">By</th>
-            </tr>
-          </thead>
-          <tbody id="creditLogListBody" class="divide-y divide-slate-200 font-mono">
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="bg-slate-100 px-5 py-3 border-t border-slate-300 flex justify-between items-center text-xs">
-        <span id="creditLogModalCount" class="font-bold text-slate-600"></span>
-        <button type="button" onclick="closeCreditLogModal()" class="px-4 py-1.5 bg-[#0f3460] text-amber-300 font-bold rounded transition">
-          Close
-        </button>
-      </div>
-
     </div>
   </div>
 
   <script>
     lucide.createIcons();
-
-    // Store All Settled Bets passed from Backend
     const allSettledBets = {{ all_settled_bets | json }};
-
-    // Store All Outstanding (PENDING) Bets passed from Backend
     const allOutstandingBets = {{ outstanding_bets | json }};
 
     function showOutstandingBets(userId, username) {
       document.getElementById('outstandingModalMemberName').textContent = username;
       const tbody = document.getElementById('outstandingBetsListBody');
       tbody.innerHTML = '';
-
       const userBets = allOutstandingBets.filter(b => b.user_id === userId);
       document.getElementById('outstandingModalBetsCount').textContent = `Total Slips: ${userBets.length}`;
-
       if (userBets.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-sans font-medium">No outstanding bets found for this member.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-sans">No outstanding bets found.</td></tr>`;
       } else {
         userBets.forEach((b, index) => {
           const row = document.createElement('tr');
-          row.className = 'hover:bg-amber-50/60 transition';
+          row.className = 'hover:bg-amber-50/60';
           row.innerHTML = `
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">${index + 1}</td>
-            <td class="p-2.5 border-r border-slate-200 font-sans font-bold text-blue-950">${b.home_team} vs ${b.away_team}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-purple-900">${b.choice}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-emerald-700">${b.odd}</td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
-            <td class="p-2.5 text-center">
-              <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[11px] font-bold animate-pulse">RUNNING</span>
-            </td>
+            <td class="p-2 text-center font-bold text-slate-500">${index + 1}</td>
+            <td class="p-2 font-sans font-bold text-blue-950">${b.home_team} vs ${b.away_team}</td>
+            <td class="p-2 text-center font-bold text-purple-900">${b.choice}</td>
+            <td class="p-2 text-center font-bold text-emerald-700">${b.odd}</td>
+            <td class="p-2 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
+            <td class="p-2 text-center"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">RUNNING</span></td>
           `;
           tbody.appendChild(row);
         });
       }
-
       document.getElementById('outstandingBetsModal').classList.remove('hidden');
     }
-
-    function closeOutstandingBetsModal() {
-      document.getElementById('outstandingBetsModal').classList.add('hidden');
-    }
-
-    // Store All Credit Log (Deposit/Withdraw) entries passed from Backend
-    const allCreditLogs = {{ credit_logs | json }};
-
-    function showCreditLog(userId, username) {
-      document.getElementById('creditLogModalMemberName').textContent = username;
-      const tbody = document.getElementById('creditLogListBody');
-      tbody.innerHTML = '';
-
-      const userLogs = allCreditLogs.filter(l => l.user_id === userId);
-      document.getElementById('creditLogModalCount').textContent = `Total Transactions: ${userLogs.length}`;
-
-      if (userLogs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-sans font-medium">No deposit/withdraw history found for this member.</td></tr>`;
-      } else {
-        userLogs.forEach((l, index) => {
-          const isDeposit = l.type === 'DEPOSIT';
-          const badgeClass = isDeposit ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
-          const amountClass = isDeposit ? 'text-emerald-700' : 'text-amber-800';
-          const amountSign = isDeposit ? '+' : '-';
-          const dateStr = new Date(l.created_at.replace(' ', 'T')).toLocaleString();
-
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-amber-50/60 transition';
-          row.innerHTML = `
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">${index + 1}</td>
-            <td class="p-2.5 border-r border-slate-200 font-sans font-bold text-slate-700 text-xs">${dateStr}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center">
-              <span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${l.type}</span>
-            </td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-black ${amountClass}">${amountSign}${Number(l.amount).toLocaleString()}</td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(l.balance_after).toLocaleString()}</td>
-            <td class="p-2.5 border-r border-slate-200 font-sans text-slate-500 text-xs">${l.note || '-'}</td>
-            <td class="p-2.5 text-center font-sans font-bold text-slate-600 text-xs">${l.admin_username || '-'}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      }
-
-      document.getElementById('creditLogModal').classList.remove('hidden');
-    }
-
-    function closeCreditLogModal() {
-      document.getElementById('creditLogModal').classList.add('hidden');
-    }
+    function closeOutstandingBetsModal() { document.getElementById('outstandingBetsModal').classList.add('hidden'); }
 
     function showMemberBets(userId, username) {
       document.getElementById('modalMemberName').textContent = username;
       const tbody = document.getElementById('memberBetsListBody');
       tbody.innerHTML = '';
-
       const userBets = allSettledBets.filter(b => b.user_id === userId);
       document.getElementById('modalBetsCount').textContent = `Total Slips: ${userBets.length}`;
-
       if (userBets.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400 font-sans font-medium">No betting history found for this member.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400 font-sans">No betting history found.</td></tr>`;
       } else {
         userBets.forEach((b, index) => {
-          let badgeColor = 'bg-slate-200 text-slate-800';
-          if (b.status === 'WON') badgeColor = 'bg-emerald-100 text-emerald-800';
-          else if (b.status === 'LOST') badgeColor = 'bg-rose-100 text-rose-800';
-
-          const netWinLose = Number(b.payout || 0) - Number(b.amount || 0);
-          const netClass = netWinLose >= 0 ? 'text-emerald-700' : 'text-rose-600';
-          const netSign = netWinLose >= 0 ? '+' : '';
-
+          let badge = 'bg-slate-200 text-slate-800';
+          if (b.status === 'WON') badge = 'bg-emerald-100 text-emerald-800';
+          else if (b.status === 'LOST') badge = 'bg-rose-100 text-rose-800';
+          const net = Number(b.payout || 0) - Number(b.amount || 0);
+          const netClass = net >= 0 ? 'text-emerald-700' : 'text-rose-600';
+          const netSign = net >= 0 ? '+' : '';
           const row = document.createElement('tr');
-          row.className = 'hover:bg-amber-50/60 transition';
+          row.className = 'hover:bg-amber-50/60';
           row.innerHTML = `
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-500 text-xs">${index + 1}</td>
-            <td class="p-2.5 border-r border-slate-200 font-sans font-bold text-blue-950">${b.home_team} vs ${b.away_team}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-slate-700">${b.home_score ?? '-'} : ${b.away_score ?? '-'}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-purple-900">${b.choice}</td>
-            <td class="p-2.5 border-r border-slate-200 text-center font-bold text-emerald-700">${b.odd}</td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
-            <td class="p-2.5 border-r border-slate-200 text-right font-black ${netClass}">${netSign}${netWinLose.toLocaleString()}</td>
-            <td class="p-2.5 text-center">
-              <span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeColor}">${b.status}</span>
-            </td>
+            <td class="p-2 text-center font-bold text-slate-500">${index + 1}</td>
+            <td class="p-2 font-sans font-bold text-blue-950">${b.home_team} vs ${b.away_team}</td>
+            <td class="p-2 text-center font-bold text-slate-700">${b.home_score ?? '-'} : ${b.away_score ?? '-'}</td>
+            <td class="p-2 text-center font-bold text-purple-900">${b.choice}</td>
+            <td class="p-2 text-center font-bold text-emerald-700">${b.odd}</td>
+            <td class="p-2 text-right font-bold text-slate-800">${Number(b.amount).toLocaleString()}</td>
+            <td class="p-2 text-right font-black ${netClass}">${netSign}${net.toLocaleString()}</td>
+            <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badge}">${b.status}</span></td>
           `;
           tbody.appendChild(row);
         });
       }
-
       document.getElementById('memberBetsModal').classList.remove('hidden');
     }
-
-    function closeMemberBetsModal() {
-      document.getElementById('memberBetsModal').classList.add('hidden');
-    }
-
-    // Mobile Sidebar Drawer
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-    mobileMenuBtn?.addEventListener('click', () => { sidebar?.classList.remove('-translate-x-full'); sidebarOverlay?.classList.remove('hidden'); });
-    closeSidebarBtn?.addEventListener('click', () => { sidebar?.classList.add('-translate-x-full'); sidebarOverlay?.classList.add('hidden'); });
-    sidebarOverlay?.addEventListener('click', () => { sidebar?.classList.add('-translate-x-full'); sidebarOverlay?.classList.add('hidden'); });
+    function closeMemberBetsModal() { document.getElementById('memberBetsModal').classList.add('hidden'); }
   </script>
 </body>
 </html>

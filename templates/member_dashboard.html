@@ -3,168 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MYANBET365 - Mobile Sportsbook</title>
+  <title>{{ member.username }} - Chan Sport</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
-    .bet-btn:active {
-      transform: scale(0.97);
-      background-color: #fef08a !important;
-      border-color: #ca8a04 !important;
-    }
+    * { -webkit-tap-highlight-color: transparent; }
+    .bet-btn:active { transform: scale(0.97); background-color: #fef08a !important; border-color: #ca8a04 !important; }
   </style>
 </head>
-<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-xs select-none pb-12">
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
 
-  <!-- Mobile Top Header Bar -->
-  <header class="bg-[#0b2545] text-white border-b-2 border-amber-400 sticky top-0 z-30 shadow-md">
-    <div class="max-w-4xl mx-auto px-3 py-2.5 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <a href="/member" class="font-black text-amber-400 tracking-wider text-base">MYANBET<span class="text-white">365</span></a>
-      </div>
+  {% include "partials/header.html" %}
 
-      <div class="flex items-center space-x-2">
-        <div class="bg-[#133b5c] border border-blue-800/80 px-2.5 py-1 rounded flex items-center space-x-2 shadow-inner">
-          <div class="flex flex-col text-right">
-            <span class="text-[9px] text-slate-300 uppercase font-semibold leading-none">{{ user.username }}</span>
-            <span class="text-amber-400 font-mono font-bold text-xs leading-tight mt-0.5">{{ user.balance | money }} <span class="text-[9px] text-white">MMK</span></span>
-          </div>
-          <button onclick="window.location.reload()" class="p-1 text-slate-300 active:text-amber-300" title="Refresh">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-          </button>
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-3">
+
+    <!-- Back + member summary -->
+    <a href="/home" class="inline-flex items-center space-x-1 text-slate-600 font-bold text-xs">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i><span>Back to Home</span>
+    </a>
+
+    <div class="bg-[#0b2545] text-white rounded-2xl p-4 shadow-md">
+      <div class="flex items-center space-x-3">
+        <span class="w-11 h-11 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-lg">{{ member.username[0] | upper }}</span>
+        <div>
+          <div class="font-black text-lg">{{ member.username }}</div>
+          <div class="text-[11px] text-slate-300">Commission {{ member.commission }}%</div>
         </div>
-
-        <button type="button" onclick="openChangePasswordModal()" class="bg-[#133b5c] active:bg-[#1b4a73] text-slate-200 font-bold p-1.5 rounded border border-blue-800/80" title="Change Password">
-          <i data-lucide="key" class="w-3.5 h-3.5"></i>
-        </button>
-
-        <a href="/logout" class="bg-rose-700 active:bg-rose-800 text-white font-bold p-1.5 rounded" title="Logout">
-          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-        </a>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="bg-[#133b5c] px-2 py-1.5 border-t border-blue-900/60">
-      <div class="max-w-4xl mx-auto grid grid-cols-3 gap-1 bg-[#0b2545] p-1 rounded-lg">
-        <a href="/member?tab=sports" class="py-1.5 text-center font-bold text-xs rounded transition flex items-center justify-center space-x-1 {% if current_tab == 'sports' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-300{% endif %}">
-          <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
-          <span>Sport</span>
-        </a>
-        <a href="/member?tab=history" class="py-1.5 text-center font-bold text-xs rounded transition flex items-center justify-center space-x-1 {% if current_tab == 'history' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-300{% endif %}">
-          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-          <span>History ({{ running_bets | length }})</span>
-        </a>
-        <a href="/member?tab=winlose" class="py-1.5 text-center font-bold text-xs rounded transition flex items-center justify-center space-x-1 {% if current_tab == 'winlose' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-300{% endif %}">
-          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
-          <span>Win / Lose</span>
-        </a>
-      </div>
+    <!-- Member Tabs -->
+    <div class="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-3 gap-1">
+      <a href="/member/{{ member.id }}?tab=bet" class="py-2.5 rounded-lg text-center text-[11px] font-bold flex items-center justify-center space-x-1 {% if tab == 'bet' %}bg-[#0b2545] text-amber-300{% else %}text-slate-600{% endif %}">
+        <i data-lucide="ticket" class="w-3.5 h-3.5"></i><span>Bet</span>
+      </a>
+      <a href="/member/{{ member.id }}?tab=paste" class="py-2.5 rounded-lg text-center text-[11px] font-bold flex items-center justify-center space-x-1 {% if tab == 'paste' %}bg-[#0b2545] text-amber-300{% else %}text-slate-600{% endif %}">
+        <i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i><span>Paste</span>
+      </a>
+      <a href="/member/{{ member.id }}?tab=history" class="py-2.5 rounded-lg text-center text-[11px] font-bold flex items-center justify-center space-x-1 {% if tab == 'history' %}bg-[#0b2545] text-amber-300{% else %}text-slate-600{% endif %}">
+        <i data-lucide="clock" class="w-3.5 h-3.5"></i><span>History ({{ running_bets | length }})</span>
+      </a>
     </div>
-  </header>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-2.5 space-y-2.5">
-
-    <!-- 1. SPORT MATCHES -->
-    {% if current_tab == 'sports' %}
+    <!-- ============ TAB: PLACE BET ============ -->
+    {% if tab == 'bet' %}
       {% if betting_locked %}
-        <div class="bg-rose-50 border border-rose-300 text-rose-800 px-3 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 shadow-sm">
+        <div class="bg-rose-50 border border-rose-300 text-rose-800 px-3 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2">
           <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
-          <span>လောင်းကြေး တင်ခြင်းကို ယာယီ ပိတ်ထားပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။</span>
+          <span>လောင်းကြေး တင်ခြင်းကို ယာယီ ပိတ်ထားပါသည်။</span>
         </div>
       {% endif %}
-      {% if matches | length == 0 %}
-        <div class="bg-white p-8 rounded-xl border border-slate-300 text-center text-slate-500 font-semibold shadow-sm">
-          No active matches available right now.
-        </div>
-      {% else %}
-        <div class="space-y-2.5">
-          {% for m in matches %}
-            <div class="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
 
-              <div class="bg-[#1e3a5f] text-white px-3 py-1.5 flex justify-between items-center text-[11px]">
+      {% if matches | length == 0 %}
+        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-semibold">No active matches available.</div>
+      {% else %}
+        <div class="space-y-3">
+          {% for m in matches %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="bg-[#0b2545] text-white px-3 py-2 flex justify-between items-center text-[11px]">
                 <div class="flex items-center space-x-2 font-bold">
-                  <span class="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px] font-mono">
-                    {{ loop.index }}
-                  </span>
-                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span class="font-mono">{{ m.time_display }}</span>
-                  <span class="text-slate-400">|</span>
-                  <span class="text-amber-300 font-mono">ID: #{{ m.id }}</span>
+                  <span class="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px] font-mono">{{ loop.index }}</span>
+                  {% if m.time_display %}<span class="font-mono">{{ m.time_display }}</span><span class="text-slate-500">|</span>{% endif %}
+                  <span class="text-amber-300 font-mono">#{{ m.id }}</span>
                 </div>
                 <span class="bg-emerald-600/80 text-white font-bold px-1.5 py-0.5 rounded text-[9px]">LIVE</span>
               </div>
 
-              <div class="p-2.5 bg-white space-y-2">
-
-                <!-- Body Section -->
+              <div class="p-3 space-y-2">
                 <div>
                   <div class="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase mb-1">
-                    <span>Body Selection</span>
-                    <span class="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">{{ m.body_odd }}</span>
+                    <span>Body</span>
+                    <span class="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{{ m.body_odd }}</span>
                   </div>
-                  <div class="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "BODY", "{{ m.home_team }}", "{{ m.home_odd }}")'
-                      class="bet-btn p-2 rounded-lg border border-slate-300 bg-slate-50 flex items-center justify-between transition"
-                    >
-                      <span class="font-bold text-xs {% if m.is_upper_home %}text-rose-700 font-black{% else %}text-slate-800{% endif %} truncate">
-                        {{ m.home_team }} {% if m.is_upper_home %}*{% endif %}
-                      </span>
-                      <span class="font-mono text-emerald-800 font-bold text-[11px] shrink-0 ml-1">{{ m.home_odd }}</span>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "BODY", "{{ m.home_team }}", "{{ m.home_odd }}")'
+                      class="bet-btn p-2.5 rounded-xl border border-slate-300 bg-slate-50 flex items-center justify-between">
+                      <span class="font-bold text-xs {% if m.is_upper_home %}text-rose-700 font-black{% else %}text-slate-800{% endif %} truncate">{{ m.home_team }}{% if m.is_upper_home %} *{% endif %}</span>
+                      <span class="font-mono text-emerald-800 font-bold text-[12px] shrink-0 ml-1">{{ m.home_odd }}</span>
                     </button>
-
-                    <button
-                      type="button"
-                      onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "BODY", "{{ m.away_team }}", "{{ m.away_odd }}")'
-                      class="bet-btn p-2 rounded-lg border border-slate-300 bg-slate-50 flex items-center justify-between transition"
-                    >
-                      <span class="font-bold text-xs {% if m.is_upper_away %}text-rose-700 font-black{% else %}text-slate-800{% endif %} truncate">
-                        {{ m.away_team }} {% if m.is_upper_away %}*{% endif %}
-                      </span>
-                      <span class="font-mono text-emerald-800 font-bold text-[11px] shrink-0 ml-1">{{ m.away_odd }}</span>
+                    <button type="button" onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "BODY", "{{ m.away_team }}", "{{ m.away_odd }}")'
+                      class="bet-btn p-2.5 rounded-xl border border-slate-300 bg-slate-50 flex items-center justify-between">
+                      <span class="font-bold text-xs {% if m.is_upper_away %}text-rose-700 font-black{% else %}text-slate-800{% endif %} truncate">{{ m.away_team }}{% if m.is_upper_away %} *{% endif %}</span>
+                      <span class="font-mono text-emerald-800 font-bold text-[12px] shrink-0 ml-1">{{ m.away_odd }}</span>
                     </button>
                   </div>
                 </div>
 
-                <!-- Over / Under Section -->
                 <div class="pt-1.5 border-t border-slate-100">
                   <div class="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase mb-1">
                     <span>Over / Under</span>
-                    <span class="font-mono text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs">{{ m.total_odd }}</span>
+                    <span class="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ m.total_odd }}</span>
                   </div>
-                  <div class="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "OVER_UNDER", "OVER (Over)", "{{ m.over_odd }}")'
-                      class="bet-btn py-2 px-3 rounded-lg border border-slate-300 bg-slate-50 font-bold font-mono text-purple-900 text-xs flex justify-between items-center transition"
-                    >
-                      <span class="flex items-center space-x-1">
-                        <span>Over (ပေါ်)</span>
-                        <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-purple-600"></i>
-                      </span>
-                      <span class="text-blue-900 font-bold text-[11px]">{{ m.over_odd }}</span>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "OVER_UNDER", "OVER (Over)", "{{ m.over_odd }}")'
+                      class="bet-btn py-2.5 px-3 rounded-xl border border-slate-300 bg-slate-50 font-bold font-mono text-purple-900 text-xs flex justify-between items-center">
+                      <span class="flex items-center space-x-1"><span>Over (ပေါ်)</span><i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-purple-600"></i></span>
+                      <span class="text-blue-900 font-bold text-[12px]">{{ m.over_odd }}</span>
                     </button>
-
-                    <button
-                      type="button"
-                      onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "OVER_UNDER", "UNDER (Under)", "{{ m.under_odd }}")'
-                      class="bet-btn py-2 px-3 rounded-lg border border-slate-300 bg-slate-50 font-bold font-mono text-slate-700 text-xs flex justify-between items-center transition"
-                    >
-                      <span class="flex items-center space-x-1">
-                        <span>Under (အောက်)</span>
-                        <i data-lucide="arrow-down-right" class="w-3.5 h-3.5 text-slate-500"></i>
-                      </span>
-                      <span class="text-slate-600 font-bold text-[11px]">{{ m.under_odd }}</span>
+                    <button type="button" onclick='openBetSheet({{ m.id }}, "{{ m.home_team }} vs {{ m.away_team }}", "OVER_UNDER", "UNDER (Under)", "{{ m.under_odd }}")'
+                      class="bet-btn py-2.5 px-3 rounded-xl border border-slate-300 bg-slate-50 font-bold font-mono text-slate-700 text-xs flex justify-between items-center">
+                      <span class="flex items-center space-x-1"><span>Under (အောက်)</span><i data-lucide="arrow-down-right" class="w-3.5 h-3.5 text-slate-500"></i></span>
+                      <span class="text-slate-600 font-bold text-[12px]">{{ m.under_odd }}</span>
                     </button>
                   </div>
                 </div>
-
               </div>
             </div>
           {% endfor %}
@@ -172,469 +114,268 @@
       {% endif %}
     {% endif %}
 
-    <!-- 2. BET HISTORY TAB -->
-    {% if current_tab == 'history' %}
-      <div class="space-y-2">
-        <div class="text-[11px] font-bold text-slate-600 px-1 flex justify-between">
-          <span>Active Running Bets</span>
-          <span class="text-blue-900 font-mono">{{ running_bets | length }} Bets</span>
-        </div>
-
-        {% if running_bets | length == 0 %}
-          <div class="bg-white p-8 rounded-xl border border-slate-300 text-center text-slate-400 font-medium">
-            No active running bets currently.
-          </div>
-        {% else %}
+    <!-- ============ TAB: HISTORY ============ -->
+    {% if tab == 'history' %}
+      <!-- Running -->
+      <div class="font-bold text-slate-700 text-xs px-1">Running Bets ({{ running_bets | length }})</div>
+      {% if running_bets | length == 0 %}
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center text-slate-400 font-medium">No running bets.</div>
+      {% else %}
+        <div class="space-y-2">
           {% for b in running_bets %}
-            <div class="bg-white p-3 rounded-xl border border-slate-300 shadow-sm space-y-1.5">
-              <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                <div class="flex items-center space-x-2">
-                  <span class="w-5 h-5 rounded-full bg-[#133b5c] text-white flex items-center justify-center font-black text-[10px] font-mono shrink-0">
-                    {{ loop.index }}
-                  </span>
-                  <span class="font-bold text-slate-800 text-xs">{{ b.home_team }} vs {{ b.away_team }}</span>
-                </div>
-                <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">RUNNING</span>
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-slate-800 text-xs">{{ b.home_team }} vs {{ b.away_team }}</span>
+                <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold animate-pulse">RUNNING</span>
               </div>
-              <div class="flex justify-between items-center text-[11px] pl-7">
+              <div class="flex justify-between items-center mt-1 text-[11px]">
                 <span class="font-bold text-purple-900">{{ b.choice }} ({{ b.odd }})</span>
-                <span class="font-mono font-bold text-slate-900 text-sm">{{ b.amount | money }} MMK</span>
+                <span class="font-mono font-bold text-slate-900">{{ b.amount | money }} MMK</span>
               </div>
-              <div class="text-[10px] text-slate-400 font-mono pl-7">
-                {{ b.created_at_display }}
+              <div class="text-[10px] text-slate-400 font-mono mt-0.5">{{ b.created_at_display }}</div>
+              <div class="mt-2 flex items-center justify-end space-x-1.5">
+                <button type="button" onclick='openEditBet({{ b.id }}, "{{ b.odd }}", {{ b.amount }})' class="px-2.5 py-1.5 bg-blue-600 active:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i><span>Edit</span>
+                </button>
+                <form action="/member/{{ member.id }}/bet/{{ b.id }}/delete" method="POST" onsubmit="return confirm('Delete this bet?');" class="inline">
+                  <button type="submit" class="px-2.5 py-1.5 bg-rose-600 active:bg-rose-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>Delete</span>
+                  </button>
+                </form>
               </div>
             </div>
           {% endfor %}
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <!-- 3. WIN / LOSE STATEMENT TAB -->
-    {% if current_tab == 'winlose' %}
-      <div class="space-y-2.5">
-        <form action="/member" method="GET" class="bg-white p-2.5 rounded-xl border border-slate-300 flex items-center justify-between gap-2 shadow-sm">
-          <input type="hidden" name="tab" value="winlose">
-          <div class="flex items-center space-x-1.5 flex-1">
-            <i data-lucide="calendar" class="w-4 h-4 text-blue-800"></i>
-            <input
-              type="date"
-              name="filter_date"
-              value="{{ filter_date }}"
-              class="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-slate-50 font-semibold"
-            >
-          </div>
-          <button type="submit" class="px-3 py-1 bg-[#0b2545] text-amber-300 font-bold rounded text-xs">
-            Filter
-          </button>
-          {% if not show_all %}
-            <a href="/member?tab=winlose&filter_date=all" class="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded text-xs">
-              All
-            </a>
-          {% else %}
-            <a href="/member?tab=winlose" class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded text-xs">
-              Today
-            </a>
-          {% endif %}
-        </form>
-
-        {% if win_lose_bets | length == 0 %}
-          <div class="bg-white p-8 rounded-xl border border-slate-300 text-center text-slate-400 font-medium">
-            No settled statements found.
-          </div>
-        {% else %}
-          <div class="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
-                <thead class="bg-slate-100 text-slate-500 border-b border-slate-300 text-[9px] uppercase font-bold">
-                  <tr>
-                    <th class="p-2 border-r border-slate-200 text-center w-8">No.</th>
-                    <th class="p-2 border-r border-slate-200">Match</th>
-                    <th class="p-2 border-r border-slate-200 text-center">Selection</th>
-                    <th class="p-2 border-r border-slate-200 text-center">Score</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Stake</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Valid</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Comm</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Net</th>
-                    <th class="p-2 text-center">Result</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 font-mono">
-                  {% for b in win_lose_bets %}
-                    {% if b.status == 'WON' %}
-                      {% set badge_class = 'bg-emerald-100 text-emerald-800' %}
-                    {% elif b.status == 'LOST' %}
-                      {% set badge_class = 'bg-rose-100 text-rose-800' %}
-                    {% else %}
-                      {% set badge_class = 'bg-slate-100 text-slate-800' %}
-                    {% endif %}
-                    <tr class="hover:bg-amber-50/50 transition">
-                      <td class="p-2 border-r border-slate-100 text-center font-bold text-slate-500">{{ loop.index }}</td>
-                      <td class="p-2 border-r border-slate-100 font-sans font-bold text-slate-800">{{ b.home_team }} vs {{ b.away_team }}</td>
-                      <td class="p-2 border-r border-slate-100 text-center font-bold text-purple-900">{{ b.choice }} ({{ b.odd }})</td>
-                      <td class="p-2 border-r border-slate-100 text-center text-slate-600">{{ b.home_score }}-{{ b.away_score }}</td>
-                      <td class="p-2 border-r border-slate-100 text-right font-bold text-slate-800">{{ b.amount | money }}</td>
-                      <td class="p-2 border-r border-slate-100 text-right font-bold text-amber-800">{{ b.valid | money }}</td>
-                      <td class="p-2 border-r border-slate-100 text-right font-bold text-purple-700">+{{ b.comm | money }}</td>
-                      <td class="p-2 border-r border-slate-100 text-right font-black {% if b.net >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">
-                        {% if b.net >= 0 %}+{% endif %}{{ b.net | money }}
-                      </td>
-                      <td class="p-2 text-center">
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {{ badge_class }}">{{ b.status }}</span>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-                <tfoot>
-                  <tr class="bg-slate-200 font-mono font-black border-t-2 border-slate-300 text-[11px]">
-                    <td colspan="4" class="p-2 text-center font-sans uppercase text-slate-800 border-r border-slate-300 text-[9px]">Total</td>
-                    <td class="p-2 text-right border-r border-slate-300 text-slate-900">{{ total_stake | money }}</td>
-                    <td class="p-2 text-right border-r border-slate-300 text-amber-950">{{ total_valid_amount | money }}</td>
-                    <td class="p-2 text-right border-r border-slate-300 text-purple-950">+{{ comm_amount | money }}</td>
-                    <td class="p-2 text-right border-r border-slate-300 {% if net_win_lose >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">
-                      {% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }}
-                    </td>
-                    <td class="p-2 text-center">-</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        {% endif %}
-
-        <!-- Deposit / Withdraw History -->
-        <div class="text-[11px] font-bold text-slate-600 px-1 pt-1">
-          <span>Deposit / Withdraw History</span>
         </div>
-        {% if credit_log | length == 0 %}
-          <div class="bg-white p-6 rounded-xl border border-slate-300 text-center text-slate-400 font-medium text-xs">
-            No deposit/withdraw records found.
-          </div>
-        {% else %}
-          <div class="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
-                <thead class="bg-slate-100 text-slate-500 border-b border-slate-300 text-[9px] uppercase font-bold">
-                  <tr>
-                    <th class="p-2 border-r border-slate-200 text-center w-8">No.</th>
-                    <th class="p-2 border-r border-slate-200">Date &amp; Time</th>
-                    <th class="p-2 border-r border-slate-200 text-center">Type</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Amount</th>
-                    <th class="p-2 border-r border-slate-200 text-right">Balance After</th>
-                    <th class="p-2">Note</th>
+      {% endif %}
+
+      <!-- Settled -->
+      <div class="font-bold text-slate-700 text-xs px-1 pt-1">Settled ({{ settled_bets | length }})</div>
+      {% if settled_bets | length == 0 %}
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center text-slate-400 font-medium">No settled bets.</div>
+      {% else %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
+              <thead class="bg-slate-100 text-slate-500 border-b border-slate-300 text-[9px] uppercase font-bold">
+                <tr>
+                  <th class="p-2 text-center w-8">No.</th>
+                  <th class="p-2">Match</th>
+                  <th class="p-2 text-center">Sel</th>
+                  <th class="p-2 text-center">Score</th>
+                    <th class="p-2 text-right">Stake</th>
+                    <th class="p-2 text-right">Net</th>
+                    <th class="p-2 text-center">Result</th>
+                    <th class="p-2 text-center w-8">-</th>
                   </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 font-mono">
-                  {% for l in credit_log %}
-                    <tr class="hover:bg-amber-50/50 transition">
-                      <td class="p-2 border-r border-slate-100 text-center font-bold text-slate-500">{{ loop.index }}</td>
-                      <td class="p-2 border-r border-slate-100 font-sans text-slate-600 text-[10px]">{{ l.created_at_display }}</td>
-                      <td class="p-2 border-r border-slate-100 text-center">
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {% if l.log_type == 'DEPOSIT' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">{{ l.log_type }}</span>
-                      </td>
-                      <td class="p-2 border-r border-slate-100 text-right font-black {% if l.log_type == 'DEPOSIT' %}text-emerald-700{% else %}text-amber-800{% endif %}">
-                        {% if l.log_type == 'DEPOSIT' %}+{% else %}-{% endif %}{{ l.amount | money }}
-                      </td>
-                      <td class="p-2 border-r border-slate-100 text-right font-bold text-slate-800">{{ l.balance_after | money }}</td>
-                      <td class="p-2 font-sans text-slate-500 text-[10px]">{{ l.note | default("-") }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-mono">
+                {% for b in settled_bets %}
+                  <tr>
+                    <td class="p-2 text-center font-bold text-slate-500">{{ loop.index }}</td>
+                    <td class="p-2 font-sans font-bold text-slate-800">{{ b.home_team }} vs {{ b.away_team }}</td>
+                    <td class="p-2 text-center font-bold text-purple-900">{{ b.choice }}</td>
+                    <td class="p-2 text-center text-slate-600">{{ b.home_score }}-{{ b.away_score }}</td>
+                    <td class="p-2 text-right font-bold text-slate-800">{{ b.amount | money }}</td>
+                    <td class="p-2 text-right font-black {% if b.net >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{% if b.net >= 0 %}+{% endif %}{{ b.net | money }}</td>
+                    <td class="p-2 text-center">
+                      {% if b.status == 'WON' %}<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">WON</span>
+                      {% elif b.status == 'LOST' %}<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800">LOST</span>
+                      {% else %}<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-800">{{ b.status }}</span>{% endif %}
+                    </td>
+                    <td class="p-2 text-center">
+                      <form action="/member/{{ member.id }}/bet/{{ b.id }}/delete" method="POST" onsubmit="return confirm('Delete this bet?');" class="inline">
+                        <button type="submit" class="w-6 h-6 rounded bg-rose-600 text-white inline-flex items-center justify-center" title="Delete">
+                          <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="bg-slate-200 font-mono font-black border-t-2 border-slate-300 text-[11px]">
+                  <td colspan="4" class="p-2 text-center font-sans uppercase text-slate-800 text-[9px]">Total</td>
+                  <td class="p-2 text-right text-slate-900">{{ total_stake | money }}</td>
+                  <td class="p-2 text-right {% if net_win_lose >= 0 %}text-emerald-800{% else %}text-rose-700{% endif %}">{% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }}</td>
+                  <td class="p-2 text-center">-</td>
+                  <td class="p-2 text-center">-</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
-        {% endif %}
+        </div>
+        <div class="bg-[#0b2545] text-white rounded-2xl p-3.5 text-xs space-y-1.5">
+          <div class="flex justify-between"><span class="text-slate-400">Valid Amount</span><span class="font-mono font-bold text-amber-300">{{ total_valid | money }}</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Commission</span><span class="font-mono font-bold text-purple-300">{{ comm_amount | money }}</span></div>
+          <div class="flex justify-between pt-1.5 border-t border-blue-800/60"><span class="font-bold">Net Result</span><span class="font-mono font-black {% if net_win_lose >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">{% if net_win_lose >= 0 %}+{% endif %}{{ net_win_lose | money }} MMK</span></div>
+        </div>
+      {% endif %}
+    {% endif %}
+    <!-- ============ TAB: PASTE ============ -->
+    {% if tab == 'paste' %}
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-[#133b5c] text-white px-4 py-3 font-bold flex items-center space-x-2">
+          <i data-lucide="clipboard-paste" class="w-4 h-4 text-amber-400"></i><span>Paste Bets</span>
+        </div>
+        <form action="/member/{{ member.id }}/paste" method="POST" class="p-4 space-y-3">
+          <div class="text-xs text-slate-500 space-y-1">
+            <p>တစ်လိုင်း = တစ်ကြေး။ အသင်းနာမည် စာလုံးပေါင်း နည်းနည်းမှားလည်း စနစ်က ပွဲစဉ် ရှာပေးမည်။</p>
+            <p><code class="bg-slate-100 px-1 rounded">Team amount</code> → Body (ဥပမာ <span class="font-mono">Arsenal 5000</span>)</p>
+            <p><code class="bg-slate-100 px-1 rounded">Team B amount</code> → Body (ဥပမာ <span class="font-mono">Arsenal B 5000</span>)</p>
+            <p><code class="bg-slate-100 px-1 rounded">Team O amount</code> → ဂိုးပေါ် (Over)</p>
+            <p><code class="bg-slate-100 px-1 rounded">Team U amount</code> → ဂိုးအောက် (Under)</p>
+            <p>လိုင်းအစမှာ <span class="font-mono">YYYY-MM-DD</span> ထည့်လို့ရသည်။</p>
+          </div>
+          <textarea id="betPasteBox" name="pasted" rows="6" placeholder="Arsenal 5000&#10;Man City B 5000&#10;Chelsea O 10000&#10;Liverpool U 3000" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono focus:border-blue-600 focus:outline-none"></textarea>
+          <div class="flex items-center gap-2">
+            <input type="date" id="bet_paste_date" name="match_date" class="flex-1 px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:border-blue-600 focus:outline-none font-semibold">
+            <button type="submit" class="px-5 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5 shadow">
+              <i data-lucide="check-check" class="w-4 h-4"></i><span>Add All</span>
+            </button>
+          </div>
+        </form>
       </div>
     {% endif %}
-
   </main>
 
-  <!-- ================= MOBILE BOTTOM BET SHEET ================= -->
-  <div id="betSheetOverlay" onclick="closeBetSheet()" class="fixed inset-0 bg-black/60 z-40 hidden transition-opacity"></div>
-
-  <div id="betSheet" class="fixed inset-x-0 bottom-0 max-w-lg mx-auto bg-white rounded-t-2xl shadow-2xl z-50 transform translate-y-full transition-transform duration-200 ease-out border-t-2 border-[#0b2545] p-4 space-y-3">
-
-    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-      <div class="flex items-center space-x-1.5 text-blue-950 font-black text-sm">
-        <i data-lucide="ticket" class="w-4 h-4 text-amber-500"></i>
-        <span>BET SLIP</span>
+  <!-- ================= EDIT BET MODAL ================= -->
+  <div id="editBetModal" class="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-sm border border-slate-300 overflow-hidden">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i><span>Edit Bet (Running)</span></span>
+        <button type="button" onclick="closeEditBet()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <button type="button" onclick="closeBetSheet()" class="p-1 text-slate-400 hover:text-slate-700">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-
-    <!-- Error Alert Box -->
-    <div id="betAlertBox" class="hidden p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center space-x-1.5">
-      <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-rose-600"></i>
-      <span id="betAlertMsg"></span>
-    </div>
-
-    <form id="mobileBetForm" onsubmit="handleBetSubmit(event)" class="space-y-3">
-      <input type="hidden" id="sheet_match_id" name="match_id" required>
-      <input type="hidden" id="sheet_bet_type" name="bet_type" required>
-      <input type="hidden" id="sheet_bet_choice" name="choice" required>
-      <input type="hidden" id="sheet_bet_odd" name="odd" required>
-
-      <!-- Selection Info Card -->
-      <div class="bg-amber-50/80 p-3 rounded-xl border border-amber-200 flex justify-between items-center">
+      <form id="editBetForm" method="POST" class="p-5 space-y-3.5">
         <div>
-          <div id="sheet_match_name" class="font-bold text-slate-800 text-xs"></div>
-          <div id="sheet_choice_name" class="font-black text-rose-700 text-sm mt-0.5"></div>
-        </div>
-        <div class="text-right">
-          <div class="text-[10px] text-slate-400 font-semibold uppercase">ODD</div>
-          <div id="sheet_odd_val" class="font-mono font-black text-emerald-700 text-base"></div>
-        </div>
-      </div>
-
-      <!-- Stake Amount Input -->
-      <div>
-        <div class="flex justify-between items-center mb-1">
-          <label class="font-bold text-slate-700 text-xs">Stake Amount (MMK)</label>
-          <div class="text-[10px] text-slate-500 font-mono">
-            Balance: <span class="font-bold text-slate-800">{{ user.balance | money }}</span> |
-            Limit: <span class="font-bold text-amber-700">{{ user.bet_limit | money }}</span>
-          </div>
-        </div>
-        <input
-          type="number"
-          id="sheet_amount"
-          name="amount"
-          min="500"
-          step="500"
-          placeholder="Enter stake amount (Min 500)"
-          required
-          class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl font-mono font-black text-emerald-700 text-lg focus:border-blue-600 focus:outline-none bg-slate-50 text-center"
-        >
-      </div>
-
-      <!-- Touch Quick Number Pad Keys -->
-      <div class="grid grid-cols-4 gap-1.5">
-        <button type="button" onclick="addAmount(1000)" class="py-2 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+1K</button>
-        <button type="button" onclick="addAmount(5000)" class="py-2 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+5K</button>
-        <button type="button" onclick="addAmount(10000)" class="py-2 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+10K</button>
-        <button type="button" onclick="addAmount(50000)" class="py-2 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+50K</button>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2 pt-1">
-        <button type="button" onclick="clearAmount()" class="py-2.5 bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
-          Clear
-        </button>
-        <button type="submit" id="btnPlaceBet" class="py-2.5 bg-[#0b2545] active:bg-[#133b5c] text-amber-300 font-black rounded-xl text-xs tracking-wider shadow-lg flex items-center justify-center space-x-1">
-          <span>PLACE BET NOW</span>
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- ================= CHANGE PASSWORD MODAL ================= -->
-  <div id="changePasswordModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full border border-slate-300 overflow-hidden text-slate-800 text-sm">
-      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
-        <span class="flex items-center space-x-2">
-          <i data-lucide="key" class="w-4 h-4 text-amber-400"></i>
-          <span>Change Password</span>
-        </span>
-        <button type="button" onclick="closeChangePasswordModal()" class="text-slate-300 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="changePasswordForm" onsubmit="return handleChangePasswordSubmit(event)" class="p-5 space-y-3.5">
-        <div id="changePasswordAlert" class="hidden bg-rose-50 border border-rose-300 text-rose-700 text-xs font-semibold rounded px-3 py-2"></div>
-        <div id="changePasswordSuccess" class="hidden bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded px-3 py-2"></div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1 text-xs">Current Password</label>
-          <input type="password" name="current_password" required class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Odd (ကြေး)</label>
+          <input type="text" id="edit_bet_odd" name="odd" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono font-bold text-emerald-700 focus:border-blue-600 focus:outline-none">
         </div>
         <div>
-          <label class="block font-bold text-slate-700 mb-1 text-xs">New Password</label>
-          <input type="password" name="new_password" required minlength="6" placeholder="At least 6 characters" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Amount (MMK)</label>
+          <input type="number" id="edit_bet_amount" name="amount" min="1" step="500" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono font-bold text-slate-800 focus:border-blue-600 focus:outline-none">
         </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1 text-xs">Confirm New Password</label>
-          <input type="password" name="confirm_password" required minlength="6" class="w-full px-3 py-2 border border-slate-300 rounded text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
-        </div>
-
-        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
-          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">Cancel</button>
-          <button type="submit" id="btnChangePassword" class="px-5 py-2 bg-[#0b2545] hover:bg-[#133b5c] text-amber-300 font-bold rounded text-xs transition shadow">Update Password</button>
+        <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+          <button type="button" onclick="closeEditBet()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs shadow">Save</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- ================= BET SHEET ================= -->
+  <div id="betSheetOverlay" onclick="closeBetSheet()" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
+  <div id="betSheet" class="fixed inset-x-0 bottom-0 max-w-lg mx-auto bg-white rounded-t-2xl shadow-2xl z-50 transform translate-y-full transition-transform duration-200 ease-out border-t-2 border-[#0b2545] p-4 space-y-3">
+    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+      <div class="flex items-center space-x-1.5 text-blue-950 font-black text-sm"><i data-lucide="ticket" class="w-4 h-4 text-amber-500"></i><span>BET SLIP</span></div>
+      <button type="button" onclick="closeBetSheet()" class="p-1 text-slate-400 hover:text-slate-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div id="betAlertBox" class="hidden p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center space-x-1.5">
+      <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-rose-600"></i><span id="betAlertMsg"></span>
+    </div>
+
+    <div class="bg-[#0b2545] p-3 rounded-xl text-white">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Member</div>
+      <div class="font-black text-amber-300 text-sm">{{ member.username }}</div>
+    </div>
+
+    <div class="bg-amber-50/80 p-3 rounded-xl border border-amber-200 flex justify-between items-center">
+      <div>
+        <div id="sheet_match_name" class="font-bold text-slate-800 text-xs"></div>
+        <div id="sheet_choice_name" class="font-black text-rose-700 text-sm mt-0.5"></div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] text-slate-400 font-semibold uppercase">ODD</div>
+        <div id="sheet_odd_val" class="font-mono font-black text-emerald-700 text-base"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex justify-between items-center mb-1">
+        <label class="font-bold text-slate-700 text-xs">Stake Amount (MMK)</label>
+      </div>
+      <input type="number" id="sheet_amount" min="500" step="500" placeholder="Enter stake (Min 500)"
+        class="w-full px-3 py-3 border-2 border-slate-300 rounded-xl font-mono font-black text-emerald-700 text-lg focus:border-blue-600 focus:outline-none bg-slate-50 text-center">
+    </div>
+
+    <div class="grid grid-cols-4 gap-1.5">
+      <button type="button" onclick="addAmount(1000)" class="py-2.5 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+1K</button>
+      <button type="button" onclick="addAmount(5000)" class="py-2.5 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+5K</button>
+      <button type="button" onclick="addAmount(10000)" class="py-2.5 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+10K</button>
+      <button type="button" onclick="addAmount(50000)" class="py-2.5 bg-slate-100 active:bg-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 border border-slate-200">+50K</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 pt-1 pb-2">
+      <button type="button" onclick="clearAmount()" class="py-3 bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">Clear</button>
+      <button type="button" id="btnPlaceBet" onclick="submitBet()" class="py-3 bg-[#0b2545] active:bg-[#133b5c] text-amber-300 font-black rounded-xl text-xs tracking-wider shadow-lg">PLACE BET</button>
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
+    const MEMBER_ID = {{ member.id }};
+    const todayStr = new Date(Date.now() + (6 * 60 + 30) * 60000).toISOString().split('T')[0];
+    const bpDate = document.getElementById('bet_paste_date');
+    if (bpDate) bpDate.value = todayStr;
+    let betMeta = { matchId: null, betType: '', choice: '', odd: '' };
 
-    function openChangePasswordModal() {
-      const form = document.getElementById('changePasswordForm');
-      form.reset();
-      hideChangePasswordAlert();
-      hideChangePasswordSuccess();
-      document.getElementById('changePasswordModal').classList.remove('hidden');
+    function openEditBet(id, odd, amount) {
+      document.getElementById('editBetForm').action = '/member/' + MEMBER_ID + '/bet/' + id + '/update';
+      document.getElementById('edit_bet_odd').value = odd;
+      document.getElementById('edit_bet_amount').value = amount;
+      document.getElementById('editBetModal').classList.remove('hidden');
     }
-
-    function closeChangePasswordModal() {
-      document.getElementById('changePasswordModal').classList.add('hidden');
-    }
-
-    function showChangePasswordAlert(msg) {
-      const box = document.getElementById('changePasswordAlert');
-      box.textContent = msg;
-      box.classList.remove('hidden');
-    }
-
-    function hideChangePasswordAlert() {
-      document.getElementById('changePasswordAlert').classList.add('hidden');
-    }
-
-    function showChangePasswordSuccess(msg) {
-      const box = document.getElementById('changePasswordSuccess');
-      box.textContent = msg;
-      box.classList.remove('hidden');
-    }
-
-    function hideChangePasswordSuccess() {
-      document.getElementById('changePasswordSuccess').classList.add('hidden');
-    }
-
-    async function handleChangePasswordSubmit(event) {
-      event.preventDefault();
-      hideChangePasswordAlert();
-      hideChangePasswordSuccess();
-
-      const form = event.target;
-      const newPassword = form.new_password.value;
-      const confirmPassword = form.confirm_password.value;
-
-      if (newPassword !== confirmPassword) {
-        showChangePasswordAlert('New password and confirm password do not match.');
-        return false;
-      }
-
-      const btn = document.getElementById('btnChangePassword');
-      const originalLabel = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-
-      const payload = {
-        current_password: form.current_password.value,
-        new_password: newPassword
-      };
-
-      try {
-        const response = await fetch('/member/change-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          showChangePasswordSuccess(data.message || 'Password updated successfully.');
-          form.reset();
-        } else {
-          showChangePasswordAlert(data.message || 'Failed to update password.');
-        }
-      } catch (err) {
-        showChangePasswordAlert('Network error. Please try again.');
-      }
-
-      btn.disabled = false;
-      btn.textContent = originalLabel;
-      return false;
-    }
+    function closeEditBet() { document.getElementById('editBetModal').classList.add('hidden'); }
 
     function openBetSheet(matchId, matchName, betType, choice, odd) {
       hideAlert();
-      document.getElementById('sheet_match_id').value = matchId;
-      document.getElementById('sheet_bet_type').value = betType;
-      document.getElementById('sheet_bet_choice').value = choice;
-      document.getElementById('sheet_bet_odd').value = odd;
-
+      betMeta = { matchId: matchId, betType: betType, choice: choice, odd: odd };
       document.getElementById('sheet_match_name').textContent = matchName;
       document.getElementById('sheet_choice_name').textContent = choice;
       document.getElementById('sheet_odd_val').textContent = odd;
-
       document.getElementById('sheet_amount').value = '';
-
       document.getElementById('betSheetOverlay').classList.remove('hidden');
-      const sheet = document.getElementById('betSheet');
-      sheet.classList.remove('translate-y-full');
+      document.getElementById('betSheet').classList.remove('translate-y-full');
     }
-
     function closeBetSheet() {
       document.getElementById('betSheetOverlay').classList.add('hidden');
-      const sheet = document.getElementById('betSheet');
-      sheet.classList.add('translate-y-full');
+      document.getElementById('betSheet').classList.add('translate-y-full');
       hideAlert();
     }
-
     function addAmount(val) {
       hideAlert();
       const input = document.getElementById('sheet_amount');
-      const current = parseInt(input.value) || 0;
-      input.value = current + val;
+      input.value = (parseInt(input.value) || 0) + val;
     }
+    function clearAmount() { document.getElementById('sheet_amount').value = ''; hideAlert(); }
+    function showAlert(msg) { const b = document.getElementById('betAlertBox'); document.getElementById('betAlertMsg').textContent = msg; b.classList.remove('hidden'); }
+    function hideAlert() { document.getElementById('betAlertBox').classList.add('hidden'); }
 
-    function clearAmount() {
-      document.getElementById('sheet_amount').value = '';
+    async function submitBet() {
       hideAlert();
-    }
-
-    function showAlert(msg) {
-      const box = document.getElementById('betAlertBox');
-      const text = document.getElementById('betAlertMsg');
-      text.textContent = msg;
-      box.classList.remove('hidden');
-    }
-
-    function hideAlert() {
-      const box = document.getElementById('betAlertBox');
-      box.classList.add('hidden');
-    }
-
-    // Ajax Form Submission (No Page Reload on Error)
-    async function handleBetSubmit(event) {
-      event.preventDefault();
-      hideAlert();
-
       const btn = document.getElementById('btnPlaceBet');
-      btn.disabled = true;
-      btn.innerHTML = '<span>Processing...</span>';
-
-      const payload = {
-        match_id: document.getElementById('sheet_match_id').value,
-        bet_type: document.getElementById('sheet_bet_type').value,
-        choice: document.getElementById('sheet_bet_choice').value,
-        odd: document.getElementById('sheet_bet_odd').value,
-        amount: document.getElementById('sheet_amount').value
-      };
-
+      btn.disabled = true; btn.textContent = 'Processing...';
       try {
-        const response = await fetch('/member/bet', {
+        const response = await fetch('/member/' + MEMBER_ID + '/bet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            match_id: betMeta.matchId,
+            bet_type: betMeta.betType,
+            choice: betMeta.choice,
+            amount: document.getElementById('sheet_amount').value
+          })
         });
-
         const data = await response.json();
-
         if (response.ok && data.success) {
-          // Bet အောင်မြင်လျှင် Sport tab မှာပဲ ဆက်နေပြီး balance ကို refresh လုပ်မည်
-          window.location.href = '/member?tab=sports';
+          window.location.href = '/member/' + MEMBER_ID + '?tab=bet';
         } else {
-          // Error ဖြစ်ပါက Modal ထဲတွင် စာသားနီဖြင့် ပြသမည်
           showAlert(data.message || 'Bet placement failed.');
-          btn.disabled = false;
-          btn.innerHTML = '<span>PLACE BET NOW</span>';
+          btn.disabled = false; btn.textContent = 'PLACE BET';
         }
       } catch (err) {
-        showAlert('Network error ဖြစ်ပေါ်နေပါသည်။ ခေတ္တစောင့်ပြီး ပြန်လည်ကြိုးစားပါ။');
-        btn.disabled = false;
-        btn.innerHTML = '<span>PLACE BET NOW</span>';
+        showAlert('Network error. Please try again.');
+        btn.disabled = false; btn.textContent = 'PLACE BET';
       }
     }
   </script>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Home - Chan Sport</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>* { -webkit-tap-highlight-color: transparent; }</style>
+</head>
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
+
+  {% include "partials/header.html" %}
+
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-4">
+
+    <!-- Admin Dashboard Button -->
+    <a href="/admin/match-list" class="flex items-center justify-between bg-[#0b2545] text-white rounded-2xl px-4 py-4 shadow-md active:bg-[#133b5c] border-2 border-amber-400/70">
+      <span class="flex items-center space-x-3">
+        <span class="w-11 h-11 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></span>
+        <span>
+          <span class="block font-black text-base tracking-wide">Admin Dashboard</span>
+          <span class="block text-[11px] text-slate-300">Matches, results, reports &amp; break</span>
+        </span>
+      </span>
+      <i data-lucide="chevron-right" class="w-6 h-6 text-amber-400"></i>
+    </a>
+
+    <!-- Members -->
+    <div class="flex items-center justify-between pt-1">
+      <div class="font-bold text-slate-800 text-base">Members <span class="text-slate-400 text-xs font-normal">({{ members | length }})</span></div>
+      <button onclick="openCreateModal()" class="px-3.5 py-2 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5 shadow">
+        <i data-lucide="user-plus" class="w-4 h-4"></i><span>Create Member</span>
+      </button>
+    </div>
+
+    {% if members | length == 0 %}
+      <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-medium">
+        No members yet. Tap "Create Member" to add one.
+      </div>
+    {% else %}
+      <div class="space-y-2.5">
+        {% for m in members %}
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-2.5">
+            <div class="flex items-center gap-2">
+              <a href="/member/{{ m.id }}" class="flex-1 min-w-0 flex items-center space-x-3">
+                <span class="w-10 h-10 rounded-full bg-[#0b2545] text-amber-300 flex items-center justify-center font-black text-base shrink-0">{{ m.username[0] | upper }}</span>
+                <span class="min-w-0">
+                  <span class="block font-bold text-slate-800 truncate text-base">{{ m.username }}</span>
+                  <span class="block text-[11px] text-slate-500">Commission <span class="font-mono text-blue-800">{{ m.commission }}%</span></span>
+                </span>
+              </a>
+              <button type="button" onclick='openEditModal({{ m | json }})' class="shrink-0 w-9 h-9 rounded-lg bg-blue-600 active:bg-blue-700 text-white flex items-center justify-center" title="Edit">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+              <form action="/admin/delete-member/{{ m.id }}" method="POST" onsubmit="return confirm('Delete this member and all bet history?');" class="shrink-0">
+                <button type="submit" class="w-9 h-9 rounded-lg bg-rose-600 active:bg-rose-700 text-white flex items-center justify-center" title="Delete">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- CREATE MEMBER MODAL -->
+  <div id="createModal" class="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-md border border-slate-300 overflow-hidden">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="user-plus" class="w-4 h-4 text-amber-400"></i><span>Create New Member</span></span>
+        <button onclick="closeCreateModal()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="createMemberForm" onsubmit="return handleCreateMember(event)" class="p-5 space-y-3.5">
+        <div id="createMemberAlert" class="hidden bg-rose-50 border border-rose-300 text-rose-700 text-xs font-semibold rounded px-3 py-2"></div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Name</label>
+          <input type="text" name="username" required placeholder="e.g. Aung Aung" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:border-blue-600 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Commission (%)</label>
+          <input type="number" name="commission" min="0" max="100" step="0.5" value="5" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono font-bold text-blue-800">
+        </div>
+        <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+          <button type="button" onclick="closeCreateModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">Cancel</button>
+          <button type="submit" id="btnCreateMember" class="px-5 py-2.5 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs shadow">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT MEMBER MODAL -->
+  <div id="editModal" class="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-md border border-slate-300 overflow-hidden">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i><span>Edit Member</span></span>
+        <button onclick="closeEditModal()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="editMemberForm" method="POST" class="p-5 space-y-3.5">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Name</label>
+          <input type="text" id="edit_username" name="username" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:border-blue-600 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Commission (%)</label>
+          <input type="number" id="edit_commission" name="commission" min="0" max="100" step="0.5" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono font-bold text-blue-800">
+        </div>
+        <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs shadow">Update Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function openCreateModal() {
+      document.getElementById('createMemberForm').reset();
+      document.getElementById('createMemberAlert').classList.add('hidden');
+      document.getElementById('createModal').classList.remove('hidden');
+    }
+    function closeCreateModal() { document.getElementById('createModal').classList.add('hidden'); }
+
+    async function handleCreateMember(event) {
+      event.preventDefault();
+      const alertBox = document.getElementById('createMemberAlert');
+      alertBox.classList.add('hidden');
+      const form = event.target;
+      const btn = document.getElementById('btnCreateMember');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const response = await fetch('/admin/create-member', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: form.username.value,
+            commission: form.commission.value
+          })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          window.location.reload();
+        } else {
+          alertBox.textContent = data.message || 'Failed to create member.';
+          alertBox.classList.remove('hidden');
+          btn.disabled = false; btn.textContent = label;
+        }
+      } catch (err) {
+        alertBox.textContent = 'Network error. Please try again.';
+        alertBox.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = label;
+      }
+      return false;
+    }
+
+    function openEditModal(m) {
+      document.getElementById('editMemberForm').action = '/admin/edit-member/' + m.id;
+      document.getElementById('edit_username').value = m.username;
+      document.getElementById('edit_commission').value = m.commission;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+    function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+  </script>
+</body>
+</html>

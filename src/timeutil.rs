@@ -24,11 +24,22 @@ pub fn now_str() -> String {
     now_myanmar().format(DT_FMT).to_string()
 }
 
-/// Today's "business date" using the noon-to-noon cutoff (now + 12h).
+/// Default time stored for a match entered by hand (no kickoff time chosen).
+pub const MATCH_DEFAULT_TIME: &str = "12:00:00";
+
+/// The "matchday" (business date) a moment belongs to.
+///
+/// Uses a noon-to-noon window that is labelled by the day it STARTS, so an
+/// evening match and the games that spill into the next morning share the same
+/// matchday:  `business_date = DATE(dt - 12h)`.
+/// e.g.  11th 20:00 -> 11;  12th 02:00 -> 11;  12th 13:00 -> 12.
+pub fn business_date_of(dt: NaiveDateTime) -> String {
+    (dt - Duration::hours(12)).format("%Y-%m-%d").to_string()
+}
+
+/// Today's matchday, labelled by the day the noon-to-noon window starts.
 pub fn business_today() -> String {
-    (now_myanmar() + Duration::hours(12))
-        .format("%Y-%m-%d")
-        .to_string()
+    business_date_of(now_myanmar())
 }
 
 /// Parse a stored datetime string into a NaiveDateTime, if possible.
@@ -86,6 +97,16 @@ fn group_digits(n: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn business_date_groups_next_morning_with_previous_evening() {
+        let d = |s: &str| business_date_of(parse_dt(s).unwrap());
+        assert_eq!(d("2026-10-11 20:00:00"), "2026-10-11");
+        assert_eq!(d("2026-10-12 02:00:00"), "2026-10-11");
+        assert_eq!(d("2026-10-11 13:00:00"), "2026-10-11");
+        assert_eq!(d("2026-10-12 13:00:00"), "2026-10-12");
+        assert_eq!(d("2026-10-11 09:00:00"), "2026-10-10");
+    }
 
     #[test]
     fn money_formats_with_commas() {

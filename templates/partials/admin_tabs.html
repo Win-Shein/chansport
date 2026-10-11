@@ -1,0 +1,23 @@
+<!-- Admin Dashboard Tabs -->
+<div class="sticky top-14 z-30 bg-[#0b2545] border-b border-[#1b4a73] shadow-sm">
+  <div class="mx-auto max-w-3xl px-2 py-2 flex gap-1.5 overflow-x-auto">
+    <a href="/home" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 text-slate-300 hover:bg-[#133b5c] border border-[#1b4a73]">
+      <i data-lucide="home" class="w-3.5 h-3.5"></i><span>Home</span>
+    </a>
+    <a href="/admin/add-match" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 {% if page == 'add_match' %}bg-amber-400 text-slate-950{% else %}text-slate-300 hover:bg-[#133b5c]{% endif %}">
+      <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i><span>Add Match</span>
+    </a>
+    <a href="/admin/match-list" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 {% if page == 'match_list' %}bg-amber-400 text-slate-950{% else %}text-slate-300 hover:bg-[#133b5c]{% endif %}">
+      <i data-lucide="list" class="w-3.5 h-3.5"></i><span>Match List</span>
+    </a>
+    <a href="/admin/result" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 {% if page == 'result' %}bg-amber-400 text-slate-950{% else %}text-slate-300 hover:bg-[#133b5c]{% endif %}">
+      <i data-lucide="check-square" class="w-3.5 h-3.5"></i><span>Result</span>
+    </a>
+    <a href="/admin/report" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 {% if page == 'report' %}bg-amber-400 text-slate-950{% else %}text-slate-300 hover:bg-[#133b5c]{% endif %}">
+      <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i><span>Report</span>
+    </a>
+    <a href="/admin/break" class="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-bold flex items-center space-x-1.5 {% if page == 'break' %}bg-amber-400 text-slate-950{% else %}text-slate-300 hover:bg-[#133b5c]{% endif %}">
+      <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i><span>Break</span>
+    </a>
+  </div>
+</div>

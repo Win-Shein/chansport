@@ -1,4 +1,4 @@
-//! Admin pages + member/match/credit/settlement actions.
+//! Admin Dashboard: matches, results, reports, break lock, member management.
 
 use axum::extract::{Form, Path, Query, State};
 use axum::http::StatusCode;
@@ -11,8 +11,7 @@ use std::collections::HashMap;
 use crate::db;
 use crate::handlers::{clean_string, json_err, js_num, js_str};
 use crate::models::{
-    CreditLogWithUser, ExposureRow, Match, Member, OutstandingBet, PendingBet, SettledBet,
-    WinLoseAgg,
+    ExposureRow, Match, OutstandingBet, PendingBet, SettledBet, WinLoseAgg,
 };
 use crate::settlement::{settle_myanmar_bet, BetInput};
 use crate::state::{render, AppState, SessionUser};
@@ -35,27 +34,18 @@ fn resolve_filter_date(raw: Option<String>) -> (String, bool) {
     }
 }
 
-fn member_json(m: &Member) -> Value {
-    json!({
-        "id": m.id,
-        "username": m.username,
-        "balance": m.balance,
-        "commission": m.commission,
-        "bet_limit": m.bet_limit,
-        "status": m.status,
-        "created_at_display": timeutil::display_dt(&m.created_at),
-    })
-}
-
 fn admin_match_json(m: &Match) -> Value {
     let has_score = m.home_score.is_some() && m.away_score.is_some();
     let is_finished = m.status == "FINISHED" || m.status == "CLOSED";
     let date_disp = timeutil::parse_dt(&m.match_time)
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| m.match_time.clone());
-    let time_disp = timeutil::parse_dt(&m.match_time)
-        .map(|d| d.format("%H:%M").to_string())
-        .unwrap_or_default();
+    let time_disp = match timeutil::parse_dt(&m.match_time) {
+        Some(d) if !matches!(d.format("%H:%M").to_string().as_str(), "00:00" | "12:00") => {
+            d.format("%H:%M").to_string()
+        }
+        _ => String::new(),
+    };
     json!({
         "id": m.id,
         "home_team": m.home_team,
@@ -80,9 +70,12 @@ fn result_match_json(m: &Match) -> Value {
     let date_disp = timeutil::parse_dt(&m.match_time)
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| m.match_time.clone());
-    let time_disp = timeutil::parse_dt(&m.match_time)
-        .map(|d| d.format("%H:%M").to_string())
-        .unwrap_or_default();
+    let time_disp = match timeutil::parse_dt(&m.match_time) {
+        Some(d) if !matches!(d.format("%H:%M").to_string().as_str(), "00:00" | "12:00") => {
+            d.format("%H:%M").to_string()
+        }
+        _ => String::new(),
+    };
     json!({
         "id": m.id,
         "home_team": m.home_team,
@@ -96,40 +89,6 @@ fn result_match_json(m: &Match) -> Value {
 }
 
 // ============================ PAGES ============================
-
-pub async fn members(State(state): State<AppState>, jar: CookieJar) -> Response {
-    let Some(admin) = require_admin(&state, &jar).await else {
-        return Redirect::to("/login").into_response();
-    };
-
-    let members = sqlx::query_as::<_, Member>(
-        "SELECT id, username, balance, COALESCE(commission,0) as commission, \
-                COALESCE(bet_limit,100000) as bet_limit, COALESCE(status,'ACTIVE') as status, created_at \
-         FROM users WHERE role='MEMBER' ORDER BY id DESC",
-    )
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
-
-    let total_pool: f64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(balance),0) FROM users WHERE role='MEMBER'")
-            .fetch_one(&state.db)
-            .await
-            .unwrap_or(0.0);
-
-    let list: Vec<Value> = members.iter().map(member_json).collect();
-
-    render(
-        &state,
-        "admin_members.html",
-        json!({
-            "admin": { "username": admin.username },
-            "page": "members",
-            "members": list,
-            "total_pool": total_pool,
-        }),
-    )
-}
 
 pub async fn add_match_page(State(state): State<AppState>, jar: CookieJar) -> Response {
     let Some(admin) = require_admin(&state, &jar).await else {
@@ -159,7 +118,7 @@ pub async fn match_list(
 
     let matches = sqlx::query_as::<_, Match>(
         "SELECT * FROM matches \
-         WHERE (?1 IS NULL OR date(match_time, '+12 hours') = ?1) \
+         WHERE (?1 IS NULL OR date(match_time, '-12 hours') = ?1) \
          ORDER BY CASE WHEN status='LIVE' THEN 1 WHEN status='OPEN' THEN 2 ELSE 3 END ASC, match_time ASC",
     )
     .bind(date_param)
@@ -199,7 +158,7 @@ pub async fn result(
 
     let matches = sqlx::query_as::<_, Match>(
         "SELECT * FROM matches \
-         WHERE (?1 IS NULL OR date(match_time, '+12 hours') = ?1) \
+         WHERE (?1 IS NULL OR date(match_time, '-12 hours') = ?1) \
          ORDER BY CASE WHEN home_score IS NULL THEN 1 ELSE 2 END ASC, match_time DESC",
     )
     .bind(date_param)
@@ -230,7 +189,10 @@ pub async fn report(
     let Some(admin) = require_admin(&state, &jar).await else {
         return Redirect::to("/login").into_response();
     };
-    let sub_tab = q.get("tab").cloned().unwrap_or_else(|| "credit".to_string());
+    let sub_tab = q
+        .get("tab")
+        .cloned()
+        .unwrap_or_else(|| "winlose".to_string());
     let (filter_date, show_all) = resolve_filter_date(q.get("filter_date").cloned());
     let date_param: Option<&str> = if filter_date.is_empty() {
         None
@@ -238,29 +200,7 @@ pub async fn report(
         Some(&filter_date)
     };
 
-    // 1. Credit data.
-    let credit_members = sqlx::query_as::<_, Member>(
-        "SELECT id, username, balance, COALESCE(commission,0) as commission, \
-                COALESCE(bet_limit,100000) as bet_limit, COALESCE(status,'ACTIVE') as status, created_at \
-         FROM users WHERE role='MEMBER' ORDER BY balance DESC",
-    )
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
-
-    let credit_logs = sqlx::query_as::<_, CreditLogWithUser>(
-        "SELECT cl.id, cl.user_id, cl.type AS log_type, cl.amount, cl.balance_after, cl.note, \
-                cl.admin_username, cl.created_at, u.username \
-         FROM credit_logs cl JOIN users u ON cl.user_id = u.id \
-         WHERE (?1 IS NULL OR date(cl.created_at, '+12 hours') = ?1) \
-         ORDER BY cl.created_at DESC",
-    )
-    .bind(date_param)
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
-
-    // 2. Outstanding bets.
+    // Outstanding bets.
     let outstanding_bets = sqlx::query_as::<_, OutstandingBet>(
         "SELECT b.id, b.user_id, u.username, b.bet_type, b.choice, b.odd, b.amount, b.created_at, \
                 m.home_team, m.away_team, m.match_time, m.body_odd, m.total_odd \
@@ -271,13 +211,13 @@ pub async fn report(
     .await
     .unwrap_or_default();
 
-    // 3. Settled bets (detail modal).
+    // Settled bets (detail modal).
     let settled_bets = sqlx::query_as::<_, SettledBet>(
         "SELECT b.id, b.user_id, u.username, b.bet_type, b.choice, b.odd, b.amount, b.payout, \
                 b.valid_amount, b.status, b.created_at, m.home_team, m.away_team, m.home_score, m.away_score, m.match_time \
          FROM bets b JOIN users u ON b.user_id = u.id JOIN matches m ON b.match_id = m.id \
          WHERE b.status IN ('WON','LOST','DRAW') \
-           AND (?1 IS NULL OR date(b.created_at, '+12 hours') = ?1) \
+           AND (?1 IS NULL OR date(b.created_at, '-12 hours') = ?1) \
          ORDER BY b.created_at DESC",
     )
     .bind(date_param)
@@ -285,14 +225,14 @@ pub async fn report(
     .await
     .unwrap_or_default();
 
-    // 4. Win/Lose aggregated per member.
+    // Win/Lose aggregated per member.
     let win_lose = sqlx::query_as::<_, WinLoseAgg>(
         "SELECT u.id as user_id, u.username, COALESCE(u.commission,0) as comm_rate, \
                 COUNT(b.id) as total_bets, COALESCE(SUM(b.amount),0) as turnover, \
                 COALESCE(SUM(b.payout),0) as payout, COALESCE(SUM(b.valid_amount),0) as valid_amount \
          FROM users u \
          LEFT JOIN bets b ON u.id = b.user_id AND b.status IN ('WON','LOST','DRAW') \
-              AND (?1 IS NULL OR date(b.created_at, '+12 hours') = ?1) \
+              AND (?1 IS NULL OR date(b.created_at, '-12 hours') = ?1) \
          WHERE u.role='MEMBER' GROUP BY u.id, u.username, u.commission ORDER BY turnover DESC",
     )
     .bind(date_param)
@@ -359,48 +299,6 @@ pub async fn report(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    // Credit totals per member.
-    let mut credit_map: HashMap<i64, (f64, f64)> = HashMap::new();
-    for l in &credit_logs {
-        let e = credit_map.entry(l.user_id).or_insert((0.0, 0.0));
-        if l.log_type == "DEPOSIT" {
-            e.0 += l.amount;
-        } else {
-            e.1 += l.amount;
-        }
-    }
-    let credit_members_json: Vec<Value> = credit_members
-        .iter()
-        .map(|m| {
-            let (dep, wit) = credit_map.get(&m.id).copied().unwrap_or((0.0, 0.0));
-            json!({
-                "id": m.id,
-                "username": m.username,
-                "balance": m.balance,
-                "commission": m.commission,
-                "status": m.status,
-                "total_deposit": dep,
-                "total_withdraw": wit,
-            })
-        })
-        .collect();
-
-    let credit_logs_json: Vec<Value> = credit_logs
-        .iter()
-        .map(|l| {
-            json!({
-                "user_id": l.user_id,
-                "username": l.username,
-                "type": l.log_type,
-                "amount": l.amount,
-                "balance_after": l.balance_after,
-                "note": l.note,
-                "admin_username": l.admin_username,
-                "created_at": l.created_at,
-            })
-        })
-        .collect();
-
     let outstanding_json: Vec<Value> = outstanding_bets
         .iter()
         .map(|b| {
@@ -442,8 +340,6 @@ pub async fn report(
             "sub_tab": sub_tab,
             "filter_date": filter_date,
             "show_all": show_all,
-            "credit_members": credit_members_json,
-            "credit_logs": credit_logs_json,
             "outstanding_bets": outstanding_json,
             "outstanding_by_member": outstanding_by_member,
             "win_lose_list": win_lose_list,
@@ -536,34 +432,23 @@ pub async fn create_member(
         return json_err(StatusCode::FORBIDDEN, "Access denied.");
     }
     let username = clean_string(&js_str(&body, "username"), 50);
-    let password = js_str(&body, "password");
     let commission = js_num(&body, "commission");
-    let bet_limit = if js_num(&body, "bet_limit") > 0.0 {
-        js_num(&body, "bet_limit")
-    } else {
-        100000.0
-    };
 
-    if username.is_empty() || password.len() < 6 {
-        return json_err(
-            StatusCode::BAD_REQUEST,
-            "Username is required and password must be at least 6 characters.",
-        );
+    if username.is_empty() {
+        return json_err(StatusCode::BAD_REQUEST, "Username is required.");
     }
 
-    let hash = match bcrypt::hash(&password, 10) {
-        Ok(h) => h,
-        Err(_) => return json_err(StatusCode::INTERNAL_SERVER_ERROR, "System error. Please try again."),
-    };
+    // Members do not log in, so no real password is needed — store a
+    // non-verifiable placeholder so the NOT NULL column is satisfied.
+    let password_placeholder = format!("!nologin:{}", crate::state::new_token());
 
     let res = sqlx::query(
         "INSERT INTO users (username, password, role, balance, commission, bet_limit, status) \
-         VALUES (?1, ?2, 'MEMBER', 0, ?3, ?4, 'ACTIVE')",
+         VALUES (?1, ?2, 'MEMBER', 0, ?3, 0, 'ACTIVE')",
     )
     .bind(&username)
-    .bind(hash)
+    .bind(password_placeholder)
     .bind(commission)
-    .bind(bet_limit)
     .execute(&state.db)
     .await;
 
@@ -589,173 +474,24 @@ pub async fn edit_member(
         return Redirect::to("/login").into_response();
     }
     let username = clean_string(form.get("username").map(String::as_str).unwrap_or(""), 50);
-    let new_password = form.get("new_password").cloned().unwrap_or_default();
-    let balance = form.get("balance").and_then(|s| s.trim().parse::<f64>().ok()).unwrap_or(0.0);
-    let commission = form.get("commission").and_then(|s| s.trim().parse::<f64>().ok()).unwrap_or(0.0);
-    let bet_limit = form.get("bet_limit").and_then(|s| s.trim().parse::<f64>().ok()).unwrap_or(100000.0);
-    let status = if form.get("status").map(String::as_str) == Some("SUSPENDED") {
-        "SUSPENDED"
-    } else {
-        "ACTIVE"
-    };
+    let commission = form
+        .get("commission")
+        .and_then(|s| s.trim().parse::<f64>().ok())
+        .unwrap_or(0.0);
 
     if username.is_empty() {
         return (StatusCode::BAD_REQUEST, "Username is required.").into_response();
     }
 
-    if !new_password.trim().is_empty() {
-        if new_password.len() < 6 {
-            return (StatusCode::BAD_REQUEST, "New password must be at least 6 characters.").into_response();
-        }
-        let hash = match bcrypt::hash(&new_password, 10) {
-            Ok(h) => h,
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "System error.").into_response(),
-        };
-        let _ = sqlx::query(
-            "UPDATE users SET username=?1, password=?2, balance=?3, commission=?4, bet_limit=?5, status=?6 \
-             WHERE id=?7 AND role='MEMBER'",
-        )
-        .bind(&username)
-        .bind(hash)
-        .bind(balance)
-        .bind(commission)
-        .bind(bet_limit)
-        .bind(status)
-        .bind(id)
-        .execute(&state.db)
-        .await;
-    } else {
-        let _ = sqlx::query(
-            "UPDATE users SET username=?1, balance=?2, commission=?3, bet_limit=?4, status=?5 \
-             WHERE id=?6 AND role='MEMBER'",
-        )
-        .bind(&username)
-        .bind(balance)
-        .bind(commission)
-        .bind(bet_limit)
-        .bind(status)
-        .bind(id)
-        .execute(&state.db)
-        .await;
-    }
-    Redirect::to("/admin/members").into_response()
-}
-
-pub async fn deposit_member(
-    State(state): State<AppState>,
-    jar: CookieJar,
-    Path(id): Path<i64>,
-    Json(body): Json<Value>,
-) -> Response {
-    if require_admin(&state, &jar).await.is_none() {
-        return json_err(StatusCode::FORBIDDEN, "Access denied.");
-    }
-    let amount = js_num(&body, "amount");
-    let note = clean_string(&js_str(&body, "note"), 200);
-    if !(amount > 0.0) {
-        return json_err(StatusCode::BAD_REQUEST, "Deposit amount must be a positive number.");
-    }
-    let member = sqlx::query_scalar::<_, f64>("SELECT balance FROM users WHERE id=?1 AND role='MEMBER'")
-        .bind(id)
-        .fetch_optional(&state.db)
-        .await
-        .ok()
-        .flatten();
-    let Some(current) = member else {
-        return json_err(StatusCode::NOT_FOUND, "Member not found.");
-    };
-    let new_balance = current + amount;
-    let admin_name = state.current_user(&jar).await.map(|u| u.username).unwrap_or_default();
-    let _ = sqlx::query("UPDATE users SET balance=?1 WHERE id=?2")
-        .bind(new_balance)
-        .bind(id)
-        .execute(&state.db)
-        .await;
     let _ = sqlx::query(
-        "INSERT INTO credit_logs (user_id, type, amount, balance_after, note, admin_username) \
-         VALUES (?1, 'DEPOSIT', ?2, ?3, ?4, ?5)",
+        "UPDATE users SET username=?1, commission=?2 WHERE id=?3 AND role='MEMBER'",
     )
-    .bind(id)
-    .bind(amount)
-    .bind(new_balance)
-    .bind(&note)
-    .bind(&admin_name)
-    .execute(&state.db)
-    .await;
-
-    Json(json!({ "success": true, "message": "Deposit successful.", "newBalance": new_balance })).into_response()
-}
-
-pub async fn withdraw_member(
-    State(state): State<AppState>,
-    jar: CookieJar,
-    Path(id): Path<i64>,
-    Json(body): Json<Value>,
-) -> Response {
-    if require_admin(&state, &jar).await.is_none() {
-        return json_err(StatusCode::FORBIDDEN, "Access denied.");
-    }
-    let amount = js_num(&body, "amount");
-    let note = clean_string(&js_str(&body, "note"), 200);
-    if !(amount > 0.0) {
-        return json_err(StatusCode::BAD_REQUEST, "Withdraw amount must be a positive number.");
-    }
-    let member = sqlx::query_scalar::<_, f64>("SELECT balance FROM users WHERE id=?1 AND role='MEMBER'")
-        .bind(id)
-        .fetch_optional(&state.db)
-        .await
-        .ok()
-        .flatten();
-    let Some(current) = member else {
-        return json_err(StatusCode::NOT_FOUND, "Member not found.");
-    };
-    if amount > current {
-        return json_err(
-            StatusCode::BAD_REQUEST,
-            &format!(
-                "Cannot withdraw more than the member's current balance ({} MMK).",
-                timeutil::money(current)
-            ),
-        );
-    }
-    let new_balance = current - amount;
-    let admin_name = state.current_user(&jar).await.map(|u| u.username).unwrap_or_default();
-    let _ = sqlx::query("UPDATE users SET balance=?1 WHERE id=?2")
-        .bind(new_balance)
-        .bind(id)
-        .execute(&state.db)
-        .await;
-    let _ = sqlx::query(
-        "INSERT INTO credit_logs (user_id, type, amount, balance_after, note, admin_username) \
-         VALUES (?1, 'WITHDRAW', ?2, ?3, ?4, ?5)",
-    )
-    .bind(id)
-    .bind(amount)
-    .bind(new_balance)
-    .bind(&note)
-    .bind(&admin_name)
-    .execute(&state.db)
-    .await;
-
-    Json(json!({ "success": true, "message": "Withdrawal successful.", "newBalance": new_balance })).into_response()
-}
-
-pub async fn toggle_status_member(
-    State(state): State<AppState>,
-    jar: CookieJar,
-    Path(id): Path<i64>,
-) -> Response {
-    if require_admin(&state, &jar).await.is_none() {
-        return Redirect::to("/login").into_response();
-    }
-    let _ = sqlx::query(
-        "UPDATE users SET status = CASE WHEN status='SUSPENDED' THEN 'ACTIVE' ELSE 'SUSPENDED' END \
-         WHERE id=?1 AND role='MEMBER'",
-    )
+    .bind(&username)
+    .bind(commission)
     .bind(id)
     .execute(&state.db)
     .await;
-    Redirect::to("/admin/members").into_response()
+    Redirect::to("/home").into_response()
 }
 
 pub async fn delete_member(
@@ -770,7 +506,7 @@ pub async fn delete_member(
         .bind(id)
         .execute(&state.db)
         .await;
-    Redirect::to("/admin/members").into_response()
+    Redirect::to("/home").into_response()
 }
 
 pub async fn create_match(
@@ -782,7 +518,6 @@ pub async fn create_match(
         return Redirect::to("/login").into_response();
     }
     let match_date = clean_string(form.get("match_date").map(String::as_str).unwrap_or(""), 20);
-    let match_time = clean_string(form.get("match_time").map(String::as_str).unwrap_or(""), 10);
     let home_team = clean_string(form.get("home_team").map(String::as_str).unwrap_or(""), 100);
     let away_team = clean_string(form.get("away_team").map(String::as_str).unwrap_or(""), 100);
     let upper_team = if form.get("upper_team").map(String::as_str) == Some("AWAY") {
@@ -793,11 +528,15 @@ pub async fn create_match(
     let body_odd = clean_string(form.get("body_odd").map(String::as_str).unwrap_or(""), 30);
     let total_odd = clean_string(form.get("total_odd").map(String::as_str).unwrap_or(""), 30);
 
-    if match_date.is_empty() || match_time.is_empty() || home_team.is_empty() || away_team.is_empty() {
-        return (StatusCode::BAD_REQUEST, "Please fill in date, time and both team names.").into_response();
+    if match_date.is_empty() || home_team.is_empty() || away_team.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            "Please fill in date and both team names.",
+        )
+            .into_response();
     }
 
-    let full_timestamp = format!("{} {}:00", match_date, match_time);
+    let full_timestamp = format!("{} 12:00:00", match_date);
     let _ = sqlx::query(
         "INSERT INTO matches (match_time, home_team, away_team, upper_team, body_odd, total_odd) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -823,7 +562,6 @@ pub async fn edit_match(
         return Redirect::to("/login").into_response();
     }
     let match_date = clean_string(form.get("match_date").map(String::as_str).unwrap_or(""), 20);
-    let match_time = clean_string(form.get("match_time").map(String::as_str).unwrap_or(""), 10);
     let home_team = clean_string(form.get("home_team").map(String::as_str).unwrap_or(""), 100);
     let away_team = clean_string(form.get("away_team").map(String::as_str).unwrap_or(""), 100);
     let upper_team = if form.get("upper_team").map(String::as_str) == Some("AWAY") {
@@ -834,7 +572,7 @@ pub async fn edit_match(
     let body_odd = clean_string(form.get("body_odd").map(String::as_str).unwrap_or(""), 30);
     let total_odd = clean_string(form.get("total_odd").map(String::as_str).unwrap_or(""), 30);
     let status = clean_string(form.get("status").map(String::as_str).unwrap_or(""), 20);
-    let full_timestamp = format!("{} {}:00", match_date, match_time);
+    let full_timestamp = format!("{} 12:00:00", match_date);
 
     let _ = sqlx::query(
         "UPDATE matches SET match_time=?1, home_team=?2, away_team=?3, upper_team=?4, \
@@ -881,10 +619,18 @@ pub async fn set_result(
     let home_score = form.get("home_score").and_then(|s| s.trim().parse::<i64>().ok());
     let away_score = form.get("away_score").and_then(|s| s.trim().parse::<i64>().ok());
     let (Some(hs), Some(ags)) = (home_score, away_score) else {
-        return (StatusCode::BAD_REQUEST, "Please enter valid non-negative goal scores.").into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            "Please enter valid non-negative goal scores.",
+        )
+            .into_response();
     };
     if hs < 0 || ags < 0 {
-        return (StatusCode::BAD_REQUEST, "Please enter valid non-negative goal scores.").into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            "Please enter valid non-negative goal scores.",
+        )
+            .into_response();
     }
 
     let match_row = sqlx::query_as::<_, Match>("SELECT * FROM matches WHERE id=?1")
@@ -897,33 +643,38 @@ pub async fn set_result(
         return (StatusCode::BAD_REQUEST, "Invalid match id.").into_response();
     };
 
-    let mut tx = match state.db.begin().await {
-        Ok(tx) => tx,
-        Err(e) => {
-            eprintln!("[ERROR] set-result begin: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "System error.").into_response();
-        }
-    };
-
-    if let Err(e) = sqlx::query("UPDATE matches SET home_score=?1, away_score=?2, status='FINISHED' WHERE id=?3")
-        .bind(hs)
-        .bind(ags)
-        .bind(id)
-        .execute(&mut *tx)
-        .await
-    {
-        eprintln!("[ERROR] set-result update match: {e}");
+    if let Err(e) = settle_match(&state.db, &m, hs as i32, ags as i32).await {
+        eprintln!("[ERROR] set-result settle: {e}");
         return (StatusCode::INTERNAL_SERVER_ERROR, "System error.").into_response();
     }
+
+    Redirect::to("/admin/result").into_response()
+}
+
+/// Set the match score/status and settle all its PENDING bets.
+/// Shared by the manual Result form and the automatic result sync.
+pub(crate) async fn settle_match(
+    db: &sqlx::SqlitePool,
+    m: &Match,
+    hs: i32,
+    ags: i32,
+) -> Result<(), sqlx::Error> {
+    let mut tx = db.begin().await?;
+
+    sqlx::query("UPDATE matches SET home_score=?1, away_score=?2, status='FINISHED' WHERE id=?3")
+        .bind(hs)
+        .bind(ags)
+        .bind(m.id)
+        .execute(&mut *tx)
+        .await?;
 
     let pending = sqlx::query_as::<_, PendingBet>(
         "SELECT b.id, b.user_id, b.bet_type, b.choice, b.odd, b.amount, COALESCE(u.commission,0) as comm_rate \
          FROM bets b JOIN users u ON b.user_id = u.id WHERE b.match_id=?1 AND b.status='PENDING'",
     )
-    .bind(id)
+    .bind(m.id)
     .fetch_all(&mut *tx)
-    .await
-    .unwrap_or_default();
+    .await?;
 
     for bet in &pending {
         let input = BetInput {
@@ -935,35 +686,17 @@ pub async fn set_result(
             away_team: m.away_team.clone(),
             upper_team: m.upper_team.clone(),
         };
-        let result = settle_myanmar_bet(&input, hs as i32, ags as i32);
-
-        if let Err(e) = sqlx::query("UPDATE bets SET status=?1, payout=?2, valid_amount=?3 WHERE id=?4")
+        let result = settle_myanmar_bet(&input, hs, ags);
+        sqlx::query("UPDATE bets SET status=?1, payout=?2, valid_amount=?3 WHERE id=?4")
             .bind(result.status)
             .bind(result.payout)
             .bind(result.valid_amount)
             .bind(bet.id)
             .execute(&mut *tx)
-            .await
-        {
-            eprintln!("[ERROR] set-result update bet: {e}");
-            continue;
-        }
-
-        let comm_amount = result.valid_amount * bet.comm_rate / 100.0;
-        let total_refund = result.payout + comm_amount;
-        if total_refund > 0.0 {
-            let _ = sqlx::query("UPDATE users SET balance = balance + ?1 WHERE id=?2")
-                .bind(total_refund)
-                .bind(bet.user_id)
-                .execute(&mut *tx)
-                .await;
-        }
+            .await?;
     }
 
-    if let Err(e) = tx.commit().await {
-        eprintln!("[ERROR] set-result commit: {e}");
-        return (StatusCode::INTERNAL_SERVER_ERROR, "System error.").into_response();
-    }
-
-    Redirect::to("/admin/result").into_response()
+    tx.commit().await?;
+    Ok(())
 }
+

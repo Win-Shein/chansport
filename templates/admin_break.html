@@ -3,126 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Break Settings - MYANBET365</title>
+  <title>Break - Chan Sport</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-[#f0f2f5] text-slate-800 font-sans min-h-screen flex flex-col md:flex-row antialiased text-sm">
-  <header class="md:hidden bg-[#0f3460] text-white px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow">
-    <span class="font-black text-amber-400 tracking-wider text-lg">MYANBET<span class="text-white">365</span></span>
-    <button id="mobileMenuBtn" class="p-1.5 text-slate-200 hover:text-white"><i data-lucide="menu" class="w-6 h-6"></i></button>
-  </header>
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
 
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
-  {% include "partials/sidebar.html" %}
+  {% include "partials/header.html" %}
+  {% include "partials/admin_tabs.html" %}
 
-  <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-    <div class="bg-white border-b border-slate-300 px-5 py-3 flex items-center justify-between shadow-sm text-sm">
-      <span class="font-bold text-slate-800 uppercase tracking-wide">Betting Limiter & Break Settings</span>
-    </div>
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-4">
 
-    <div class="p-4 sm:p-5 space-y-4">
-      {% if betting_locked %}
-        <div class="bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2.5 rounded-lg text-xs font-bold flex items-center space-x-2 max-w-3xl">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-          <span>Betting is currently LOCKED site-wide. Members can log in and browse, but cannot place any new bets.</span>
+    {% if betting_locked %}
+      <div class="bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+        <span>Betting is LOCKED site-wide. No new bets can be recorded.</span>
+      </div>
+    {% endif %}
+
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+        <div class="pr-3">
+          <div class="font-bold text-slate-800">Global Bet Lock</div>
+          <div class="text-slate-500 text-xs mt-0.5">{% if betting_locked %}Locked. Resume to record new bets.{% else %}Temporarily suspend all betting.{% endif %}</div>
         </div>
-      {% endif %}
-
-      <div class="bg-white p-4 rounded-lg border border-slate-300 shadow-sm space-y-4 max-w-3xl">
-        <div class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
-          <div>
-            <div class="font-bold text-slate-800 text-sm">Global Bet Lock</div>
-            <div class="text-slate-500 text-xs mt-0.5">
-              {% if betting_locked %}
-                Betting is locked. Members cannot place new bets until you resume.
-              {% else %}
-                Temporarily suspend all betting activity system-wide
-              {% endif %}
-            </div>
-          </div>
-          <form action="/admin/toggle-bet-lock" method="POST" onsubmit="return confirm('{% if betting_locked %}Resume betting site-wide? Members will be able to place bets again.{% else %}Stop ALL betting site-wide? Members will not be able to place any new bets until you resume.{% endif %}');">
-            {% if betting_locked %}
-              <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs">Resume Betting</button>
-            {% else %}
-              <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-xs">Emergency Stop</button>
-            {% endif %}
-          </form>
-        </div>
-
-        <form action="/admin/break" method="GET" class="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded">
-          <div>
-            <div class="font-bold text-slate-800 text-sm">Break Limit (per Match + Selection)</div>
-            <div class="text-slate-500 text-xs mt-0.5">Combined member stakes on the same match &amp; selection over this amount are flagged below</div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <input type="number" name="break_limit" value="{{ break_limit }}" min="0" step="1000" class="w-28 px-3 py-1.5 border border-slate-300 rounded text-sm bg-white">
-            <button type="submit" class="px-3 py-1.5 bg-[#0f3460] text-amber-300 text-xs rounded font-bold">Apply</button>
-          </div>
+        <form action="/admin/toggle-bet-lock" method="POST" onsubmit="return confirm('{% if betting_locked %}Resume betting site-wide?{% else %}Stop ALL betting site-wide?{% endif %}');" class="shrink-0">
+          {% if betting_locked %}
+            <button type="submit" class="px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs">Resume</button>
+          {% else %}
+            <button type="submit" class="px-4 py-2.5 bg-rose-600 active:bg-rose-700 text-white font-bold rounded-lg text-xs">Emergency Stop</button>
+          {% endif %}
         </form>
       </div>
 
-      <!-- ================= BREAK EXPOSURE MONITOR (over-limit only) ================= -->
-      <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden max-w-5xl">
-        <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-          <span>Selections Over Break Limit</span>
-          <span class="text-xs font-normal text-slate-200">
-            Break Limit: {{ break_limit | money }} MMK &middot;
-            Over Limit: {{ exposure_list | length }}
-          </span>
+      <form action="/admin/break" method="GET" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+        <div>
+          <div class="font-bold text-slate-800">Break Limit (per Match + Selection)</div>
+          <div class="text-slate-500 text-xs mt-0.5">Combined stakes over this amount are flagged below.</div>
         </div>
+        <div class="flex items-center space-x-2">
+          <input type="number" name="break_limit" value="{{ break_limit }}" min="0" step="1000" class="w-32 px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white font-mono">
+          <button type="submit" class="px-3 py-2.5 bg-[#0b2545] text-amber-300 text-xs rounded-lg font-bold">Apply</button>
+        </div>
+      </form>
+    </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm border-collapse">
-            <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
-              <tr>
-                <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                <th class="p-3 border-r border-slate-300">Match</th>
-                <th class="p-3 border-r border-slate-300 text-center">Selection</th>
-                <th class="p-3 border-r border-slate-300 text-center w-20">Bets</th>
-                <th class="p-3 border-r border-slate-300 text-right">Total Staked</th>
-                <th class="p-3 border-r border-slate-300 text-right">Break Limit</th>
-                <th class="p-3 text-right">Excess</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              {% if exposure_list | length == 0 %}
-                <tr>
-                  <td colspan="7" class="p-6 text-center text-slate-500 font-medium">No selections are currently over the break limit.</td>
-                </tr>
-              {% else %}
-                {% for e in exposure_list %}
-                  <tr class="bg-rose-50/70 hover:bg-rose-100/70 transition">
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">{{ loop.index }}</td>
-                    <td class="p-3 border-r border-slate-200 font-bold text-blue-950">{{ e.home_team }} vs {{ e.away_team }}</td>
-                    <td class="p-3 border-r border-slate-200 text-center font-bold text-purple-900">{{ e.choice }}</td>
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-600">{{ e.bet_count }}</td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-black text-rose-700 text-base">
-                      {{ e.total_staked | money }}
-                    </td>
-                    <td class="p-3 border-r border-slate-200 text-right font-mono font-bold text-slate-500">{{ break_limit | money }}</td>
-                    <td class="p-3 text-right font-mono font-black text-base">
-                      <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800">+{{ e.excess | money }}</span>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-[#133b5c] text-white px-4 py-2.5 font-bold flex justify-between items-center">
+        <span>Over Break Limit</span>
+        <span class="text-xs font-normal text-slate-300">Limit {{ break_limit | money }} &middot; {{ exposure_list | length }} over</span>
       </div>
+      {% if exposure_list | length == 0 %}
+        <div class="p-8 text-center text-slate-500 font-medium">No selections are currently over the break limit.</div>
+      {% else %}
+        <div class="divide-y divide-slate-100">
+          {% for e in exposure_list %}
+            <div class="p-3.5">
+              <div class="flex justify-between items-start">
+                <div class="font-bold text-blue-950">{{ e.home_team }} <span class="text-slate-400 text-xs font-normal">vs</span> {{ e.away_team }}</div>
+                <span class="font-mono font-black text-rose-700">+{{ e.excess | money }}</span>
+              </div>
+              <div class="mt-1 flex items-center justify-between text-xs">
+                <span class="font-bold text-purple-900">{{ e.choice }}</span>
+                <span class="text-slate-500 font-mono">{{ e.bet_count }} bets &middot; {{ e.total_staked | money }} MMK</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
   </main>
 
-  <script>
-    lucide.createIcons();
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    mobileMenuBtn?.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); sidebarOverlay.classList.remove('hidden'); });
-    closeSidebarBtn?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
-    sidebarOverlay?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
-  </script>
+  <script>lucide.createIcons();</script>
 </body>
 </html>

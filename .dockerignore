@@ -1,0 +1,10 @@
+target
+.git
+.gitignore
+myanbet365.db
+myanbet365.db-shm
+myanbet365.db-wal
+*.db
+*.db-shm
+*.db-wal
+.env

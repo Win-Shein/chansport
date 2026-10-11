@@ -38,17 +38,6 @@ CREATE TABLE IF NOT EXISTS bets (
   created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','+6 hours','+30 minutes'))
 );
 
-CREATE TABLE IF NOT EXISTS credit_logs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  amount REAL NOT NULL,
-  balance_after REAL NOT NULL,
-  note TEXT,
-  admin_username TEXT,
-  created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now','+6 hours','+30 minutes'))
-);
-
 CREATE TABLE IF NOT EXISTS app_settings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   betting_locked INTEGER NOT NULL DEFAULT 0

@@ -3,205 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Match Results - MYANBET365</title>
+  <title>Results - Chan Sport</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-[#f0f2f5] text-slate-800 font-sans min-h-screen flex flex-col md:flex-row antialiased text-sm">
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
 
-  <!-- Mobile Header -->
-  <header class="md:hidden bg-[#0f3460] text-white px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow">
-    <span class="font-black text-amber-400 tracking-wider text-lg">MYANBET<span class="text-white">365</span></span>
-    <button id="mobileMenuBtn" class="p-1.5 text-slate-200 hover:text-white">
-      <i data-lucide="menu" class="w-6 h-6"></i>
-    </button>
-  </header>
+  {% include "partials/header.html" %}
+  {% include "partials/admin_tabs.html" %}
 
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-4">
 
-  <!-- Include Sidebar -->
-  {% include "partials/sidebar.html" %}
-
-  <!-- Main Content Area -->
-  <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-
-    <!-- Top Subheader -->
-    <div class="bg-white border-b border-slate-300 px-5 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm text-sm">
-      <div class="flex items-center space-x-3">
-        <span class="font-bold text-slate-800 uppercase tracking-wide">Match Result Management</span>
-        <span class="text-slate-300">|</span>
-        <span class="text-slate-600">Total Matches: <strong class="text-blue-700 font-bold">{{ matches | length }}</strong></span>
-      </div>
-      <a href="/admin/match-list" class="text-xs text-slate-600 hover:text-blue-700 font-bold flex items-center space-x-1">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        <span>View Match List</span>
-      </a>
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <span class="font-bold text-slate-800">Results</span>
+      <form action="/admin/result" method="GET" class="flex flex-wrap items-center gap-2">
+        <input type="date" name="filter_date" value="{{ filter_date }}" class="px-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-semibold">
+        <button type="submit" class="px-3 py-2 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs">Search</button>
+        {% if not show_all %}
+          <a href="/admin/result?filter_date=all" class="px-3 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">All</a>
+        {% else %}
+          <a href="/admin/result" class="px-3 py-2 bg-amber-100 text-amber-800 font-bold rounded-lg text-xs">Today</a>
+        {% endif %}
+      </form>
     </div>
 
-    <div class="p-4 sm:p-5 space-y-4">
-
-      <!-- Date Search Filter Bar -->
-      <div class="bg-white p-3.5 rounded-lg border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <form action="/admin/result" method="GET" class="flex items-center space-x-2">
-          <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
-            <i data-lucide="calendar" class="w-4 h-4 text-blue-700"></i>
-            <span>{% if show_all %}Filter by Date:{% else %}Showing (business day):{% endif %}</span>
-          </label>
-          <input
-            type="date"
-            name="filter_date"
-            value="{{ filter_date }}"
-            class="px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600 font-semibold"
-          >
-          <button type="submit" class="px-3 py-1.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow-sm">
-            Search
-          </button>
-          {% if not show_all %}
-            <a href="/admin/result?filter_date=all" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
-              Show All
-            </a>
-          {% else %}
-            <a href="/admin/result" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded text-xs transition">
-              Today
-            </a>
-          {% endif %}
-        </form>
-
-        <div class="text-xs text-slate-500 italic">
-          * Pending scores are displayed on top automatically.
-        </div>
+    <!-- Auto Result Sync -->
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+      <div class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+        <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-600"></i><span>Auto Result Sync</span>
       </div>
+      <p class="text-xs text-slate-500">API မှ ပွဲပြီးရလဒ်များ ဆွဲယူပြီး အလိုအလျောက် စာရင်းရှင်း (settle) ပေးမည်။ နောက်ခံတွင်လည်း အလိုအလျောက် လုပ်ဆောင်နေသည်။</p>
+      <form action="/admin/sync-results" method="POST" class="flex items-center gap-2">
+        <input type="date" id="result_sync_date" name="sync_date" class="flex-1 px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 font-semibold focus:border-blue-600 focus:outline-none">
+        <button type="submit" class="px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5 shadow">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Sync Results</span>
+        </button>
+      </form>
+    </div>
 
-      <!-- Table Container -->
-      <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden">
-        <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex justify-between items-center">
-          <span>{% if filter_date %}Match Results for Date: {{ filter_date }}{% else %}Match Results{% endif %}</span>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm border-collapse">
-            <thead class="bg-[#eaedf2] text-slate-700 border-b border-slate-300 text-xs uppercase font-bold">
-              <tr>
-                <th class="p-3 border-r border-slate-300 text-center w-12">No.</th>
-                <th class="p-3 border-r border-slate-300">Date &amp; Time</th>
-                <th class="p-3 border-r border-slate-300">Match Teams</th>
-                <th class="p-3 border-r border-slate-300 text-center">Final Score</th>
-                <th class="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              {% if matches | length == 0 %}
-                <tr>
-                  <td colspan="5" class="p-6 text-center text-slate-500 font-medium">
-                    No matches found {% if filter_date %}for this selected date{% endif %}.
-                  </td>
-                </tr>
+    {% if matches | length == 0 %}
+      <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-medium">No matches found {% if filter_date %}for this date{% endif %}.</div>
+    {% else %}
+      <div class="space-y-3">
+        {% for m in matches %}
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
+            <div class="flex justify-between items-center">
+              <div class="font-bold text-blue-950 text-base min-w-0 truncate">{{ m.home_team }} <span class="text-slate-400 text-xs font-normal">vs</span> {{ m.away_team }}</div>
+              {% if m.has_score %}
+                <span class="px-3 py-1 bg-[#0b2545] text-amber-300 rounded-lg font-mono font-black shrink-0">{{ m.home_score }} - {{ m.away_score }}</span>
               {% else %}
-                {% for m in matches %}
-                  <tr class="{% if m.has_score %}bg-slate-50/70 hover:bg-amber-50/50{% else %}hover:bg-amber-50/80 bg-white{% endif %} transition">
-                    <!-- Serial No -->
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-xs">
-                      {{ loop.index }}
-                    </td>
-
-                    <!-- Match Date & Time -->
-                    <td class="p-3 border-r border-slate-200 whitespace-nowrap">
-                      <div class="font-bold text-slate-800">{{ m.date_display }}</div>
-                      <div class="text-xs text-slate-500 font-mono">{{ m.time_display }}</div>
-                    </td>
-
-                    <!-- Teams -->
-                    <td class="p-3 border-r border-slate-200">
-                      <div class="font-bold text-blue-950 text-base">
-                        <span>{{ m.home_team }}</span>
-                        <span class="text-xs font-normal text-slate-400 mx-1">vs</span>
-                        <span>{{ m.away_team }}</span>
-                      </div>
-                    </td>
-
-                    <!-- Score Result -->
-                    <td class="p-3 border-r border-slate-200 text-center font-mono font-black text-base">
-                      {% if m.has_score %}
-                        <span class="px-3 py-1 bg-[#0f3460] text-amber-300 rounded shadow-sm">
-                          {{ m.home_score }} - {{ m.away_score }}
-                        </span>
-                      {% else %}
-                        <span class="text-slate-400 text-xs font-bold italic">- Pending -</span>
-                      {% endif %}
-                    </td>
-
-                    <!-- Actions -->
-                    <td class="p-3 text-center whitespace-nowrap">
-                      {% if m.has_score %}
-                        <!-- Edit Result Button -->
-                        <button
-                          type="button"
-                          onclick='openResultModal({{ m | json }})'
-                          class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-xs inline-flex items-center space-x-1 transition shadow-sm"
-                        >
-                          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                          <span>Edit Result</span>
-                        </button>
-                      {% else %}
-                        <!-- Enter Result Button -->
-                        <button
-                          type="button"
-                          onclick='openResultModal({{ m | json }})'
-                          class="px-3 py-1 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs inline-flex items-center space-x-1 transition shadow-sm"
-                        >
-                          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                          <span>Enter Score</span>
-                        </button>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
+                <span class="text-slate-400 text-xs font-bold italic shrink-0">Pending</span>
               {% endif %}
-            </tbody>
-          </table>
-        </div>
+            </div>
+            <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ m.date_display }}{% if m.time_display %} · {{ m.time_display }}{% endif %}</div>
+            <button type="button" onclick='openResultModal({{ m | json }})' class="mt-3 w-full py-2.5 rounded-lg {% if m.has_score %}bg-amber-500 text-slate-950{% else %}bg-[#0b2545] text-amber-300{% endif %} font-bold flex items-center justify-center space-x-1">
+              <i data-lucide="{% if m.has_score %}edit-3{% else %}plus-circle{% endif %}" class="w-4 h-4"></i>
+              <span>{% if m.has_score %}Edit Result{% else %}Enter Score{% endif %}</span>
+            </button>
+          </div>
+        {% endfor %}
       </div>
-    </div>
+    {% endif %}
   </main>
 
-  <!-- Result Entry & Edit Modal -->
-  <div id="resultModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full border border-slate-300 overflow-hidden">
-      <div class="bg-[#1f4068] text-white px-5 py-3 flex justify-between items-center font-bold text-sm">
-        <span class="flex items-center space-x-2">
-          <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
-          <span>Set Match Result</span>
-        </span>
-        <button onclick="closeResultModal()" class="text-slate-300 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+  <!-- Result Modal -->
+  <div id="resultModal" class="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-md border border-slate-300 overflow-hidden">
+      <div class="bg-[#0b2545] text-white px-5 py-3 flex justify-between items-center font-bold">
+        <span class="flex items-center space-x-2"><i data-lucide="award" class="w-4 h-4 text-amber-400"></i><span>Set Match Result</span></span>
+        <button onclick="closeResultModal()" class="text-slate-300 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-
-      <form id="resultForm" method="POST" class="p-5 space-y-4 text-sm">
+      <form id="resultForm" method="POST" class="p-5 space-y-4">
         <div class="text-center font-bold text-blue-950 text-base pb-2 border-b border-slate-200">
-          <span id="modal_home_name">Home</span>
-          <span class="text-slate-400 text-xs mx-1">vs</span>
-          <span id="modal_away_name">Away</span>
+          <span id="modal_home_name">Home</span><span class="text-slate-400 text-xs mx-1">vs</span><span id="modal_away_name">Away</span>
         </div>
-
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block font-bold text-slate-700 mb-1 text-xs" id="label_home">Home Goals</label>
-            <input type="number" min="0" id="modal_home_score" name="home_score" required class="w-full px-3 py-2 border border-slate-300 rounded text-center text-lg font-black bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+            <input type="number" min="0" id="modal_home_score" name="home_score" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-center text-xl font-black bg-slate-50 focus:border-blue-600 focus:outline-none">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1 text-xs" id="label_away">Away Goals</label>
-            <input type="number" min="0" id="modal_away_score" name="away_score" required class="w-full px-3 py-2 border border-slate-300 rounded text-center text-lg font-black bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-600">
+            <input type="number" min="0" id="modal_away_score" name="away_score" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-center text-xl font-black bg-slate-50 focus:border-blue-600 focus:outline-none">
           </div>
         </div>
-
-        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
-          <button type="button" onclick="closeResultModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs transition">
-            Cancel
-          </button>
-          <button type="submit" class="px-5 py-2 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-xs transition shadow">
-            Save Result
-          </button>
+        <p class="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Saving the result will automatically settle all running bets and credit payouts + commission to member balances.</p>
+        <div class="flex items-center justify-end space-x-2 pt-1 border-t border-slate-200">
+          <button type="button" onclick="closeResultModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 bg-[#0b2545] text-amber-300 font-bold rounded-lg text-xs shadow">Save Result</button>
         </div>
       </form>
     </div>
@@ -209,34 +98,19 @@
 
   <script>
     lucide.createIcons();
-
+    const rsd = document.getElementById('result_sync_date');
+    if (rsd) rsd.value = new Date(Date.now() + (6 * 60 + 30) * 60000).toISOString().split('T')[0];
     function openResultModal(match) {
-      const form = document.getElementById('resultForm');
-      form.action = '/admin/set-result/' + match.id;
-
+      document.getElementById('resultForm').action = '/admin/set-result/' + match.id;
       document.getElementById('modal_home_name').textContent = match.home_team;
       document.getElementById('modal_away_name').textContent = match.away_team;
       document.getElementById('label_home').textContent = match.home_team + ' Goals';
       document.getElementById('label_away').textContent = match.away_team + ' Goals';
-
       document.getElementById('modal_home_score').value = match.home_score !== null ? match.home_score : '';
       document.getElementById('modal_away_score').value = match.away_score !== null ? match.away_score : '';
-
       document.getElementById('resultModal').classList.remove('hidden');
     }
-
-    function closeResultModal() {
-      document.getElementById('resultModal').classList.add('hidden');
-    }
-
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-    mobileMenuBtn?.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); sidebarOverlay.classList.remove('hidden'); });
-    closeSidebarBtn?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
-    sidebarOverlay?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
+    function closeResultModal() { document.getElementById('resultModal').classList.add('hidden'); }
   </script>
 </body>
 </html>

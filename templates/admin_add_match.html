@@ -3,133 +3,192 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Match - MYANBET365</title>
+  <title>Add Match - Chan Sport</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-[#f0f2f5] text-slate-800 font-sans min-h-screen flex flex-col md:flex-row antialiased text-sm">
+<body class="bg-[#eef2f6] text-slate-800 font-sans min-h-screen antialiased text-sm pb-14">
 
-  <!-- Mobile Header -->
-  <header class="md:hidden bg-[#0f3460] text-white px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow">
-    <span class="font-black text-amber-400 tracking-wider text-lg">MYANBET<span class="text-white">365</span></span>
-    <button id="mobileMenuBtn" class="p-1.5 text-slate-200 hover:text-white">
-      <i data-lucide="menu" class="w-6 h-6"></i>
-    </button>
-  </header>
+  {% include "partials/header.html" %}
+  {% include "partials/admin_tabs.html" %}
 
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+  <main class="mx-auto max-w-3xl p-3 sm:p-4 space-y-3">
 
-  <!-- Include Sidebar -->
-  {% include "partials/sidebar.html" %}
-
-  <!-- Main Content Area -->
-  <main class="flex-1 flex flex-col min-w-0 bg-[#eef1f6]">
-
-    <!-- Top Subheader -->
-    <div class="bg-white border-b border-slate-300 px-5 py-3 flex items-center justify-between shadow-sm text-sm">
-      <div class="flex items-center space-x-3">
-        <span class="font-bold text-slate-800 uppercase tracking-wide">Match Management</span>
-        <span class="text-slate-300">/</span>
-        <span class="text-blue-700 font-semibold">Add New Match</span>
+    <!-- Auto Import Fixtures -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-[#133b5c] text-white px-4 py-3 font-bold flex items-center space-x-2">
+        <i data-lucide="download" class="w-4 h-4 text-amber-400"></i><span>Auto Import Fixtures (Team names only)</span>
       </div>
-      <a href="/admin/match-list" class="text-xs text-slate-600 hover:text-blue-700 font-bold flex items-center space-x-1">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        <span>View Match List</span>
-      </a>
+      <form action="/admin/sync-fixtures" method="POST" class="p-4 space-y-3">
+        <p class="text-xs text-slate-500">API မှ ထိုရက်စွဲအတွက် ကစားမည့် အသင်းနာမည်များကို အလိုအလျောက် ထည့်ပေးမည်။ Odds များကို Match List တွင် ကိုယ်တိုင် ပြင်နိုင်ပါသည်။</p>
+        <div class="flex items-center gap-2">
+          <input type="date" id="sync_date" name="sync_date" class="flex-1 px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:border-blue-600 focus:outline-none font-semibold">
+          <button type="submit" class="px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5 shadow">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Sync</span>
+          </button>
+        </div>
+      </form>
     </div>
 
-    <!-- Form Container -->
-    <div class="p-4 sm:p-5">
-      <div class="bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden max-w-3xl">
-        <div class="bg-[#1f4068] text-white px-4 py-2.5 text-sm font-bold flex items-center space-x-2">
-          <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i>
-          <span>Create New Match</span>
+    <!-- Paste Odds -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-[#133b5c] text-white px-4 py-3 font-bold flex items-center space-x-2">
+        <i data-lucide="clipboard-paste" class="w-4 h-4 text-amber-400"></i><span>Paste Odds</span>
+      </div>
+      <form action="/admin/parse-matches" method="POST" class="p-4 space-y-3">
+        <div class="text-xs text-slate-500 space-y-1">
+          <p>တစ်လိုင်း = တစ်ပွဲ။ အသင်းနာမည် စာလုံးပေါင်း နည်းနည်းမှားလည်း စနစ်က ပွဲစဉ်စာရင်းထဲ ရှာပေးမည်။</p>
+          <p><code class="bg-slate-100 px-1 rounded">FavTeam bodyOdd/totalOdd</code> → လက်ရှိပွဲစဉ် ရှာပြီး ပေါက်ဈေး ထည့် (ဥပမာ <span class="font-mono">Arsenal -20/3+50</span>)</p>
+          <p><code class="bg-slate-100 px-1 rounded">Home vs Away FavTeam bodyOdd/totalOdd</code> → ပွဲအသစ် ထည့်</p>
+          <p>လိုင်းအစမှာ <span class="font-mono">YYYY-MM-DD</span> ထည့်လို့ရသည်။</p>
+        </div>
+        <textarea id="pasteBox" name="pasted" rows="5" placeholder="Arsenal -20/3+50&#10;Man City 1+25/3-50&#10;Liverpool vs Chelsea Liverpool 0.5-25/2.5+80" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 font-mono focus:border-blue-600 focus:outline-none"></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="date" id="paste_date" name="match_date" class="flex-1 px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:border-blue-600 focus:outline-none font-semibold">
+          <button type="button" onclick="fillFormFromPaste()" class="px-4 py-2.5 bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5">
+            <i data-lucide="wand-2" class="w-4 h-4"></i><span>Fill Form</span>
+          </button>
+          <button type="submit" class="px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center space-x-1.5 shadow">
+            <i data-lucide="check-check" class="w-4 h-4"></i><span>Parse &amp; Add All</span>
+          </button>
+        </div>
+        <div id="parseHint" class="hidden text-[11px] font-bold rounded-lg px-3 py-2"></div>
+      </form>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-[#133b5c] text-white px-4 py-3 font-bold flex items-center space-x-2">
+        <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i><span>Create New Match</span>
+      </div>
+
+      <form action="/admin/add-match" method="POST" class="p-4 sm:p-5 space-y-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 text-xs">Match Date</label>
+          <input type="date" id="match_date" name="match_date" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:border-blue-600 focus:outline-none">
         </div>
 
-        <form action="/admin/add-match" method="POST" class="p-5 space-y-4 text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1 text-xs">Home Team</label>
+            <input type="text" name="home_team" placeholder="e.g. Arsenal" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 font-semibold focus:border-blue-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1 text-xs">Away Team</label>
+            <input type="text" name="away_team" placeholder="e.g. Chelsea" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-slate-50 font-semibold focus:border-blue-600 focus:outline-none">
+          </div>
+        </div>
 
-          <!-- Separate Date & Time Inputs -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-[#f8fafc] p-3.5 border border-slate-200 rounded-xl space-y-3">
+          <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Odds Setting</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Match Date</label>
-              <input type="date" id="match_date" name="match_date" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm focus:outline-none focus:border-blue-600">
+              <label class="block font-bold text-slate-600 mb-1 text-xs">Upper Team</label>
+              <select name="upper_team" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-bold text-blue-900 focus:outline-none">
+                <option value="HOME">HOME</option>
+                <option value="AWAY">AWAY</option>
+              </select>
             </div>
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Match Time</label>
-              <input type="time" id="match_time" name="match_time" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm focus:outline-none focus:border-blue-600">
+              <label class="block font-bold text-slate-600 mb-1 text-xs">Body Odd</label>
+              <input type="text" name="body_odd" placeholder="1-50" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-bold text-emerald-700 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1 text-xs">Goal O/U Odd</label>
+              <input type="text" name="total_odd" placeholder="2.5-80" required class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white font-bold text-emerald-700 focus:outline-none">
             </div>
           </div>
+        </div>
 
-          <!-- Teams Input -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Home Team</label>
-              <input type="text" name="home_team" placeholder="e.g. Arsenal" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm font-semibold focus:outline-none focus:border-blue-600">
-            </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Away Team</label>
-              <input type="text" name="away_team" placeholder="e.g. Chelsea" required class="w-full px-3 py-2 border border-slate-300 rounded bg-slate-50 focus:bg-white text-sm font-semibold focus:outline-none focus:border-blue-600">
-            </div>
-          </div>
-
-          <!-- Odds Section -->
-          <div class="bg-[#f8fafc] p-4 border border-slate-200 rounded-lg space-y-4">
-            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Betting Odds Setting</div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <!-- Handicap / Upper Team (HOME / AWAY only) -->
-              <div>
-                <label class="block font-bold text-slate-600 mb-1 text-xs">Upper Team</label>
-                <select name="upper_team" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-blue-900 focus:outline-none focus:border-blue-600">
-                  <option value="HOME">HOME</option>
-                  <option value="AWAY">AWAY</option>
-                </select>
-              </div>
-
-              <!-- Body Odd -->
-              <div>
-                <label class="block font-bold text-slate-600 mb-1 text-xs">Body Odd</label>
-                <input type="text" name="body_odd" placeholder="e.g. 1-50 or 0.5+25" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-emerald-700 focus:outline-none focus:border-blue-600">
-              </div>
-
-              <!-- Goal Over/Under Odd -->
-              <div>
-                <label class="block font-bold text-slate-600 mb-1 text-xs">Goal Over/Under Odd</label>
-                <input type="text" name="total_odd" placeholder="e.g. 3-20 or 2.5-80" required class="w-full px-3 py-2 border border-slate-300 rounded bg-white text-sm font-bold text-emerald-700 focus:outline-none focus:border-blue-600">
-              </div>
-            </div>
-          </div>
-
-          <!-- Submit Buttons -->
-          <div class="flex items-center space-x-3 pt-2">
-            <button type="submit" class="px-6 py-2.5 bg-[#0f3460] hover:bg-[#16213e] text-amber-300 font-bold rounded text-sm transition shadow">
-              Save Match
-            </button>
-            <a href="/admin/match-list" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-sm transition">
-              Cancel
-            </a>
-          </div>
-        </form>
-      </div>
+        <div class="flex items-center space-x-3 pt-1">
+          <button type="submit" class="flex-1 px-6 py-3 bg-[#0b2545] active:bg-[#133b5c] text-amber-300 font-bold rounded-lg shadow">Save Match</button>
+          <a href="/admin/match-list" class="px-4 py-3 bg-slate-200 text-slate-700 font-bold rounded-lg">Cancel</a>
+        </div>
+      </form>
     </div>
   </main>
 
   <script>
     lucide.createIcons();
+    const todayStr = new Date(Date.now() + (6 * 60 + 30) * 60000).toISOString().split('T')[0];
+    document.getElementById('match_date').value = todayStr;
+    document.getElementById('sync_date').value = todayStr;
+    document.getElementById('paste_date').value = todayStr;
 
-    // Auto-set Today's Date by default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('match_date').value = today;
+    // Parse one pasted line: "[YYYY-MM-DD] Home vs Away [FavTeam] bodyOdd/totalOdd"
+    function parsePastedLine(line, defaultDate) {
+      line = (line || '').trim();
+      if (!line) return null;
+      let date = defaultDate;
+      const dm = line.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
+      if (dm) { date = dm[1]; line = dm[2]; }
+      const i = line.toLowerCase().indexOf(' vs ');
+      if (i < 0) return { error: "' vs ' မပါပါ" };
+      const home = line.slice(0, i).trim();
+      const rest = line.slice(i + 4).trim();
+      const tokens = rest.split(/\s+/);
+      let oddsPos = -1;
+      for (let k = tokens.length - 1; k >= 0; k--) { if (tokens[k].includes('/')) { oddsPos = k; break; } }
+      if (oddsPos < 0) return { error: "ပေါက်ဈေး bodyOdd/totalOdd မတွေ့ပါ" };
+      const slash = tokens[oddsPos].indexOf('/');
+      const body = tokens[oddsPos].slice(0, slash).trim();
+      const total = tokens[oddsPos].slice(slash + 1).trim();
+      if (!body || !total) return { error: "ပေါက်ဈေး format မှားနေပါသည်" };
+      const teamsFav = tokens.slice(0, oddsPos).join(' ');
+      if (!teamsFav) return { error: "Away team မပါပါ" };
+      let away, fav;
+      const homeLower = home.toLowerCase();
+      if (home && teamsFav.toLowerCase().endsWith(homeLower) && teamsFav.length > home.length) {
+        away = teamsFav.slice(0, teamsFav.length - home.length).trim();
+        fav = home;
+      } else {
+        const parts = teamsFav.split(/\s+/);
+        if (parts.length >= 2 && parts.length % 2 === 0) {
+          const half = parts.length / 2;
+          const a = parts.slice(0, half).join(' ');
+          const b = parts.slice(half).join(' ');
+          if (a.toLowerCase() === b.toLowerCase()) { away = a; fav = a; }
+        }
+        if (!away) { away = teamsFav; fav = home; }
+      }
+      if (!away) return { error: "Away team မပါပါ" };
+      const upper = (fav.toLowerCase() === homeLower) ? 'HOME' : 'AWAY';
+      return { date, home, away, upper, body, total };
+    }
 
-    // Mobile Sidebar Drawer
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    function setByName(name, value) {
+      const el = document.querySelector('[name="' + name + '"]');
+      if (el) el.value = value;
+    }
 
-    mobileMenuBtn?.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); sidebarOverlay.classList.remove('hidden'); });
-    closeSidebarBtn?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
-    sidebarOverlay?.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); });
+    function fillFormFromPaste() {
+      const hint = document.getElementById('parseHint');
+      const box = document.getElementById('pasteBox');
+      const defaultDate = document.getElementById('paste_date').value || todayStr;
+      const firstLine = (box.value || '').split('\n').map(s => s.trim()).filter(s => s.length)[0];
+      if (!firstLine) {
+        hint.className = 'text-[11px] font-bold rounded-lg px-3 py-2 bg-rose-50 text-rose-700';
+        hint.textContent = 'စာသား ထည့်ပါ။';
+        hint.classList.remove('hidden');
+        return;
+      }
+      const p = parsePastedLine(firstLine, defaultDate);
+      if (!p || p.error) {
+        hint.className = 'text-[11px] font-bold rounded-lg px-3 py-2 bg-rose-50 text-rose-700';
+        hint.textContent = 'Parse မရပါ: ' + ((p && p.error) || 'format မှား');
+        hint.classList.remove('hidden');
+        return;
+      }
+      document.getElementById('match_date').value = p.date;
+      setByName('home_team', p.home);
+      setByName('away_team', p.away);
+      setByName('upper_team', p.upper);
+      setByName('body_odd', p.body);
+      setByName('total_odd', p.total);
+      const total = (box.value || '').split('\n').map(s => s.trim()).filter(s => s.length).length;
+      hint.className = 'text-[11px] font-bold rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700';
+      hint.textContent = 'အောက်က Form ထဲ ဖြည့်ပေးထားပြီး (စာလိုင်း ' + total + ' လိုင်း)။ စစ်ပြီး Save Match နှိပ်ပါ (သို့) Parse & Add All နှိပ်ပါ။';
+      hint.classList.remove('hidden');
+    }
   </script>
 </body>
 </html>

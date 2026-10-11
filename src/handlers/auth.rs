@@ -13,12 +13,8 @@ use crate::models::User;
 use crate::state::{clear_cookie, render, session_cookie, AppState, SessionUser};
 
 pub async fn get_login(State(state): State<AppState>, jar: CookieJar) -> Response {
-    if let Some(user) = state.current_user(&jar).await {
-        return if user.role == "ADMIN" {
-            Redirect::to("/admin/members").into_response()
-        } else {
-            Redirect::to("/member").into_response()
-        };
+    if state.current_user(&jar).await.is_some() {
+        return Redirect::to("/home").into_response();
     }
     render(&state, "login.html", json!({ "error": Value::Null }))
 }
@@ -71,6 +67,15 @@ pub async fn post_login(
         );
     }
 
+    // This is an admin-only system (the admin records all bets).
+    if user.role != "ADMIN" {
+        return render(
+            &state,
+            "login.html",
+            json!({ "error": "Invalid username or password" }),
+        );
+    }
+
     let session = SessionUser {
         id: user.id,
         username: user.username.clone(),
@@ -78,12 +83,7 @@ pub async fn post_login(
     };
     let token = state.start_session(session).await;
 
-    let dest = if user.role == "ADMIN" {
-        "/admin/members"
-    } else {
-        "/member"
-    };
-    (jar.add(session_cookie(token)), Redirect::to(dest)).into_response()
+    (jar.add(session_cookie(token)), Redirect::to("/home")).into_response()
 }
 
 pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> Response {
