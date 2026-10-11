@@ -227,9 +227,9 @@ pub async fn report(
 
     // Win/Lose aggregated per member.
     let win_lose = sqlx::query_as::<_, WinLoseAgg>(
-        "SELECT u.id as user_id, u.username, COALESCE(u.commission,0) as comm_rate, \
-                COUNT(b.id) as total_bets, COALESCE(SUM(b.amount),0) as turnover, \
-                COALESCE(SUM(b.payout),0) as payout, COALESCE(SUM(b.valid_amount),0) as valid_amount \
+        "SELECT u.id as user_id, u.username, COALESCE(u.commission,0.0) as comm_rate, \
+                COUNT(b.id) as total_bets, COALESCE(SUM(b.amount),0.0) as turnover, \
+                COALESCE(SUM(b.payout),0.0) as payout, COALESCE(SUM(b.valid_amount),0.0) as valid_amount \
          FROM users u \
          LEFT JOIN bets b ON u.id = b.user_id AND b.status IN ('WON','LOST','DRAW') \
               AND (?1 IS NULL OR date(b.created_at, '-12 hours') = ?1) \
