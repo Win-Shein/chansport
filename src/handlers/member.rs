@@ -284,8 +284,15 @@ pub async fn place_bet(
             None
         }
     };
-    let Some(odd) = odd else {
+    let Some(derived_odd) = odd else {
         return json_err(StatusCode::BAD_REQUEST, "ရွေးချယ်မှု မမှန်ကန်ပါ။");
+    };
+    // Record-entry system: let the operator override the odd at bet time.
+    let provided_odd = clean_string(&js_str(&body, "odd"), 50);
+    let odd = if provided_odd.trim().is_empty() {
+        derived_odd
+    } else {
+        provided_odd
     };
 
     if let Err(e) = sqlx::query(

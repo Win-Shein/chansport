@@ -300,8 +300,8 @@
         <div id="sheet_choice_name" class="font-black text-rose-700 text-sm mt-0.5"></div>
       </div>
       <div class="text-right">
-        <div class="text-[10px] text-slate-400 font-semibold uppercase">ODD</div>
-        <div id="sheet_odd_val" class="font-mono font-black text-emerald-700 text-base"></div>
+        <div class="text-[10px] text-slate-400 font-semibold uppercase">ODD (ပြင်လို့ရ)</div>
+        <input type="text" id="sheet_odd_val" class="w-24 text-right font-mono font-black text-emerald-700 text-base bg-white border border-slate-300 rounded-lg px-2 py-1 focus:border-blue-600 focus:outline-none">
       </div>
     </div>
 
@@ -347,7 +347,7 @@
       betMeta = { matchId: matchId, betType: betType, choice: choice, odd: odd };
       document.getElementById('sheet_match_name').textContent = matchName;
       document.getElementById('sheet_choice_name').textContent = choice;
-      document.getElementById('sheet_odd_val').textContent = odd;
+      document.getElementById('sheet_odd_val').value = odd;
       document.getElementById('sheet_amount').value = '';
       document.getElementById('betSheetOverlay').classList.remove('hidden');
       document.getElementById('betSheet').classList.remove('translate-y-full');
@@ -378,6 +378,7 @@
             match_id: betMeta.matchId,
             bet_type: betMeta.betType,
             choice: betMeta.choice,
+            odd: document.getElementById('sheet_odd_val').value,
             amount: document.getElementById('sheet_amount').value
           })
         });
