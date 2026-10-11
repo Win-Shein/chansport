@@ -57,6 +57,10 @@ fn sports_match_json(m: &Match) -> Value {
         "is_upper_home": is_home,
         "is_upper_away": !is_home,
         "time_display": time_disp,
+        "status": m.status,
+        "home_score": m.home_score,
+        "away_score": m.away_score,
+        "has_score": m.home_score.is_some() && m.away_score.is_some(),
     })
 }
 
@@ -83,9 +87,19 @@ pub async fn dashboard(
     let tab = q.get("tab").cloned().unwrap_or_else(|| "bet".to_string());
     let betting_locked = db::is_betting_locked(&state.db).await.unwrap_or(false);
 
+    // Bet tab shows the chosen matchday's matches (any status, incl. finished)
+    // so late entries can still be recorded.
+    let bet_date = q
+        .get("bet_date")
+        .cloned()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(timeutil::business_today);
+
     let matches = sqlx::query_as::<_, Match>(
-        "SELECT * FROM matches WHERE status IN ('OPEN','LIVE') ORDER BY match_time ASC",
+        "SELECT * FROM matches WHERE date(match_time, '-12 hours') = ?1 \
+         ORDER BY CASE WHEN status IN ('OPEN','LIVE') THEN 1 ELSE 2 END, match_time ASC",
     )
+    .bind(&bet_date)
     .fetch_all(&state.db)
     .await
     .unwrap_or_default();
@@ -169,6 +183,7 @@ pub async fn dashboard(
             "tab": tab,
             "betting_locked": betting_locked,
             "matches": matches_json,
+            "bet_date": bet_date,
             "running_bets": running_json,
             "settled_bets": settled_json,
             "total_stake": total_stake,
@@ -226,10 +241,8 @@ pub async fn place_bet(
         return json_err(StatusCode::BAD_REQUEST, "Member အကောင့် မတွေ့ပါ။");
     }
 
-    let match_row = sqlx::query_as::<_, Match>(
-        "SELECT * FROM matches WHERE id=?1 AND status IN ('OPEN','LIVE')",
-    )
-    .bind(match_id)
+    let match_row = sqlx::query_as::<_, Match>("SELECT * FROM matches WHERE id=?1")
+        .bind(match_id)
     .fetch_optional(&state.db)
     .await
     .ok()

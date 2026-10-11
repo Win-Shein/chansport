@@ -54,8 +54,18 @@
         </div>
       {% endif %}
 
+      <!-- Matchday picker -->
+      <form action="/member/{{ member.id }}" method="GET" class="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between gap-2 shadow-sm">
+        <input type="hidden" name="tab" value="bet">
+        <div class="flex items-center space-x-1.5 flex-1">
+          <i data-lucide="calendar" class="w-4 h-4 text-blue-800"></i>
+          <input type="date" name="bet_date" value="{{ bet_date }}" class="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-slate-50 font-semibold">
+        </div>
+        <button type="submit" class="px-3 py-1 bg-[#0b2545] text-amber-300 font-bold rounded text-xs">Load</button>
+      </form>
+
       {% if matches | length == 0 %}
-        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-semibold">No active matches available.</div>
+        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-semibold">No matches for this date.</div>
       {% else %}
         <div class="space-y-3">
           {% for m in matches %}
@@ -66,7 +76,9 @@
                   {% if m.time_display %}<span class="font-mono">{{ m.time_display }}</span><span class="text-slate-500">|</span>{% endif %}
                   <span class="text-amber-300 font-mono">#{{ m.id }}</span>
                 </div>
-                <span class="bg-emerald-600/80 text-white font-bold px-1.5 py-0.5 rounded text-[9px]">LIVE</span>
+                {% if m.status == 'FINISHED' %}<span class="bg-slate-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px]">FINISHED {{ m.home_score }}-{{ m.away_score }}</span>
+                {% elif m.status == 'LIVE' %}<span class="bg-rose-600/80 text-white font-bold px-1.5 py-0.5 rounded text-[9px]">LIVE</span>
+                {% else %}<span class="bg-emerald-600/80 text-white font-bold px-1.5 py-0.5 rounded text-[9px]">OPEN</span>{% endif %}
               </div>
 
               <div class="p-3 space-y-2">
@@ -124,9 +136,12 @@
         <div class="space-y-2">
           {% for b in running_bets %}
             <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-              <div class="flex justify-between items-center">
-                <span class="font-bold text-slate-800 text-xs">{{ b.home_team }} vs {{ b.away_team }}</span>
-                <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold animate-pulse">RUNNING</span>
+              <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="shrink-0 w-5 h-5 rounded-full bg-[#0b2545] text-amber-300 flex items-center justify-center font-bold text-[10px] font-mono">{{ loop.index }}</span>
+                  <span class="font-bold text-slate-800 text-xs truncate">{{ b.home_team }} vs {{ b.away_team }}</span>
+                </div>
+                <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold animate-pulse shrink-0">RUNNING</span>
               </div>
               <div class="flex justify-between items-center mt-1 text-[11px]">
                 <span class="font-bold text-purple-900">{{ b.choice }} ({{ b.odd }})</span>

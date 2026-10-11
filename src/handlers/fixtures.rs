@@ -568,8 +568,7 @@ pub fn similarity(a: &str, b: &str) -> f64 {
 /// Returns (match_id, is_home).
 pub async fn find_match_for_fav(state: &AppState, date: &str, fav: &str) -> Option<(i64, bool)> {
     let rows = sqlx::query_as::<_, MatchTeams>(
-        "SELECT id, home_team, away_team FROM matches \
-         WHERE date(match_time)=?1 AND status != 'FINISHED'",
+        "SELECT id, home_team, away_team FROM matches WHERE date(match_time)=?1",
     )
     .bind(date)
     .fetch_all(&state.db)
