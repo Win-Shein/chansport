@@ -25,10 +25,14 @@ COPY --from=builder /app/target/release/myanbet365 /usr/local/bin/myanbet365
 COPY --from=builder /app/templates ./templates
 
 ENV TEMPLATES_DIR=/app/templates
-ENV PORT=3001
+ENV PORT=3000
 ENV DATABASE_URL=sqlite:///data/chan.db
+# Defaults (overridable by Coolify env vars at runtime).
+ENV FIXTURES_API_URL=https://v3.football.api-sports.io/fixtures?date={date}
+ENV FIXTURES_LEAGUE_IDS=39,140,78,135,61,40,2,3,848,1,4,9,5
+ENV RESULT_SYNC_INTERVAL_MIN=180
 
 VOLUME ["/data"]
-EXPOSE 3001
+EXPOSE 3000
 
 CMD ["myanbet365"]
