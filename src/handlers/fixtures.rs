@@ -80,6 +80,7 @@ struct FixtureEvent {
     date: String,
     time: String,
     league: String,
+    league_id: String,
     home_score: Option<i64>,
     away_score: Option<i64>,
 }
@@ -126,10 +127,15 @@ fn first_str(value: &Value, keys: &[&str]) -> String {
 }
 
 fn fetch_fixtures(url: &str) -> Result<Vec<FixtureEvent>, String> {
-    let response = ureq::get(url)
-        .timeout(Duration::from_secs(25))
-        .call()
-        .map_err(|e| e.to_string())?;
+    let mut request = ureq::get(url).timeout(Duration::from_secs(25));
+    // Optional API key sent as a header (used by API-Football / api-sports.io).
+    if let Ok(key) = std::env::var("FIXTURES_API_KEY") {
+        let key = key.trim();
+        if !key.is_empty() {
+            request = request.set("x-apisports-key", key);
+        }
+    }
+    let response = request.call().map_err(|e| e.to_string())?;
     let value: Value = response.into_json().map_err(|e| e.to_string())?;
 
     let array = value
@@ -146,9 +152,19 @@ fn fetch_fixtures(url: &str) -> Result<Vec<FixtureEvent>, String> {
             let date = first_str(item, &["dateEvent", "strDate", "date", "fixture.date"]);
             let time = first_str(item, &["strTime", "time", "fixture.time", "match_time"]);
             let league = first_str(item, &["strLeague", "strLeagueName", "league.name", "league"]);
+            let league_id = first_str(item, &["idLeague", "league.id"]);
             let home_score = first_i64(item, &["intHomeScore", "home_score", "goals.home"]);
             let away_score = first_i64(item, &["intAwayScore", "away_score", "goals.away"]);
-            out.push(FixtureEvent { home, away, date, time, league, home_score, away_score });
+            out.push(FixtureEvent {
+                home,
+                away,
+                date,
+                time,
+                league,
+                league_id,
+                home_score,
+                away_score,
+            });
         }
     }
     Ok(out)
@@ -167,12 +183,27 @@ fn configured_leagues() -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn league_allowed(league: &str, allowed: &[String]) -> bool {
-    if allowed.is_empty() {
+/// League ids configured via FIXTURES_LEAGUE_IDS (exact match, e.g. API-Football).
+fn configured_league_ids() -> Vec<String> {
+    std::env::var("FIXTURES_LEAGUE_IDS")
+        .ok()
+        .map(|v| {
+            v.split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// A match is allowed if its league id is listed, or (fallback) its league name
+/// contains one of the configured name substrings.
+fn league_allowed(name: &str, id: &str, names: &[String], ids: &[String]) -> bool {
+    if !ids.is_empty() && ids.iter().any(|i| i == id) {
         return true;
     }
-    let l = league.to_lowercase();
-    allowed.iter().any(|a| l.contains(a.as_str()))
+    let n = name.to_lowercase();
+    names.iter().any(|a| n.contains(a.as_str()))
 }
 
 fn next_date(date: &str) -> Option<String> {
@@ -192,10 +223,11 @@ pub async fn sync_fixtures(
 
     // Only import the configured leagues — never everything by accident.
     let allowed = configured_leagues();
-    if allowed.is_empty() {
+    let allowed_ids = configured_league_ids();
+    if allowed.is_empty() && allowed_ids.is_empty() {
         return result_page(
             "Fixture Sync",
-            "FIXTURES_LEAGUES မသတ်မှတ်ရသေးပါ — import လိုသော league စာရင်းကို .env တွင် ထည့်ပါ။ (အားလုံး အလိုအလျောက် မယူပါ)",
+            "FIXTURES_LEAGUES (သို့ FIXTURES_LEAGUE_IDS) မသတ်မှတ်ရသေးပါ — import လိုသော league စာရင်းကို .env တွင် ထည့်ပါ။",
             0,
             0,
             0,
@@ -267,7 +299,7 @@ pub async fn sync_fixtures(
         if ev.home.is_empty() || ev.away.is_empty() {
             continue;
         }
-        if !league_allowed(&ev.league, &allowed) {
+        if !league_allowed(&ev.league, &ev.league_id, &allowed, &allowed_ids) {
             continue;
         }
         let date = if ev.date.is_empty() {
