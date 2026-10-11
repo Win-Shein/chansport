@@ -113,7 +113,12 @@ fn json_path_str(value: &Value, path: &str) -> String {
             None => return String::new(),
         }
     }
-    cur.as_str().map(|s| s.trim().to_string()).unwrap_or_default()
+    match cur {
+        Value::String(s) => s.trim().to_string(),
+        // Some providers (e.g. API-Football) return ids as numbers.
+        Value::Number(n) => n.to_string(),
+        _ => String::new(),
+    }
 }
 
 fn first_str(value: &Value, keys: &[&str]) -> String {
