@@ -41,6 +41,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     db::migrate(&pool).await?;
     db::seed(&pool).await?;
 
+    // Keep only the last DATA_RETENTION_DAYS (default 14) days of records.
+    db::spawn_retention_cleanup(pool.clone());
+
     let templates_dir = resolve_templates_dir();
     let env = state::build_env(&templates_dir)?;
 

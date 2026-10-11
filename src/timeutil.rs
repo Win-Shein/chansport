@@ -42,6 +42,13 @@ pub fn business_today() -> String {
     business_date_of(now_myanmar())
 }
 
+/// Matchday `days` days before today (used as a retention cutoff).
+pub fn business_today_minus_days(days: i64) -> String {
+    (now_myanmar() - Duration::hours(12) - Duration::days(days))
+        .format("%Y-%m-%d")
+        .to_string()
+}
+
 /// Parse a stored datetime string into a NaiveDateTime, if possible.
 pub fn parse_dt(s: &str) -> Option<NaiveDateTime> {
     NaiveDateTime::parse_from_str(s.trim(), DT_FMT)
