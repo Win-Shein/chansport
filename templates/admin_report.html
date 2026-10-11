@@ -32,9 +32,12 @@
         <div class="space-y-2.5">
           {% for m in outstanding_by_member %}
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
-              <div class="flex justify-between items-center">
-                <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="font-bold text-blue-700 text-base underline">{{ m.username }}</button>
-                <span class="font-mono font-black text-slate-800">{{ m.total_stake | money }} MMK</span>
+              <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="shrink-0 w-5 h-5 rounded-full bg-[#0b2545] text-amber-300 flex items-center justify-center font-bold text-[10px] font-mono">{{ loop.index }}</span>
+                  <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="font-bold text-blue-700 text-base underline truncate">{{ m.username }}</button>
+                </div>
+                <span class="font-mono font-black text-slate-800 shrink-0">{{ m.total_stake | money }} MMK</span>
               </div>
               <div class="text-[11px] text-slate-500 mt-0.5">Pending slips: <span class="font-mono font-bold text-slate-700">{{ m.total_bets }}</span></div>
               <button type="button" onclick="showOutstandingBets({{ m.user_id }}, '{{ m.username }}')" class="mt-2.5 w-full py-2.5 rounded-lg bg-[#0b2545] text-amber-300 font-bold text-xs">View Slips</button>
@@ -81,9 +84,12 @@
           {% for r in win_lose_list %}
             {% set net_win_lose = r.payout - r.turnover %}
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
-              <div class="flex justify-between items-center">
-                <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="font-bold text-blue-700 text-base underline">{{ r.username }}</button>
-                <span class="text-[11px] text-slate-500">Bets: <span class="font-mono font-bold">{{ r.total_bets }}</span></span>
+              <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="shrink-0 w-5 h-5 rounded-full bg-[#0b2545] text-amber-300 flex items-center justify-center font-bold text-[10px] font-mono">{{ loop.index }}</span>
+                  <button type="button" onclick="showMemberBets({{ r.user_id }}, '{{ r.username }}')" class="font-bold text-blue-700 text-base underline truncate">{{ r.username }}</button>
+                </div>
+                <span class="text-[11px] text-slate-500 shrink-0">Bets: <span class="font-mono font-bold">{{ r.total_bets }}</span></span>
               </div>
               <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <div class="flex justify-between"><span class="text-slate-400">Turnover</span><span class="font-mono font-bold">{{ r.turnover | money }}</span></div>

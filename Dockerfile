@@ -9,9 +9,9 @@ RUN mkdir src && printf 'fn main() {}\n' > src/main.rs \
  && cargo build --release \
  && rm -rf src
 
-# Real sources
+# Real sources (templates are copied in the runtime stage so template-only
+# changes don't invalidate the Rust build cache).
 COPY src ./src
-COPY templates ./templates
 RUN touch src/main.rs && cargo build --release
 
 # ---------- runtime stage ----------
@@ -22,7 +22,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=builder /app/target/release/myanbet365 /usr/local/bin/myanbet365
-COPY --from=builder /app/templates ./templates
+COPY templates ./templates
 
 ENV TEMPLATES_DIR=/app/templates
 ENV PORT=3000

@@ -47,8 +47,11 @@
       <div class="space-y-3">
         {% for m in matches %}
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
-            <div class="flex justify-between items-center">
-              <div class="font-bold text-blue-950 text-base min-w-0 truncate">{{ m.home_team }} <span class="text-slate-400 text-xs font-normal">vs</span> {{ m.away_team }}</div>
+            <div class="flex justify-between items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="shrink-0 w-5 h-5 rounded-full bg-[#0b2545] text-amber-300 flex items-center justify-center font-bold text-[10px] font-mono">{{ loop.index }}</span>
+                <div class="font-bold text-blue-950 text-base min-w-0 truncate">{{ m.home_team }} <span class="text-slate-400 text-xs font-normal">vs</span> {{ m.away_team }}</div>
+              </div>
               {% if m.has_score %}
                 <span class="px-3 py-1 bg-[#0b2545] text-amber-300 rounded-lg font-mono font-black shrink-0">{{ m.home_score }} - {{ m.away_score }}</span>
               {% else %}
